@@ -1,0 +1,60 @@
+# Environments and secrets
+.env
+.env.local
+.env.*.local
+*.env
+**/.env
+
+# Python
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Data and databases
+data/
+**/data/
+*.sqlite3
+*.db
+backend/data/*.db
+
+# Node / Next.js
+node_modules/
+**/node_modules/
+.next/
+**/.next/
+out/
+**/out/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Testing & Logs
+.pytest_cache/
+**/.pytest_cache/
+*.log
+**/*.log
+
+# OS generated
+.DS_Store
+Thumbs.db
