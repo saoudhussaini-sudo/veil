@@ -51,13 +51,13 @@ export default function MobileNav() {
       <div className="h-14 px-4 flex items-center justify-between">
         {/* Brand & Logo */}
         <Link href="/" className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-[#0D0D0D] border border-[rgba(212,175,55,0.18)] flex items-center justify-center">
+          <div className="w-7 h-7 rounded-lg bg-[#0D0D0D] border border-[rgba(201,164,92,0.18)] flex items-center justify-center">
             <svg
               width="15"
               height="15"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="#D4AF37"
+              stroke="#C9A45C"
               strokeWidth="2.2"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -74,7 +74,7 @@ export default function MobileNav() {
 
         {/* Right: Status dot + Hamburger button */}
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#0D0D0D] border border-[rgba(212,175,55,0.12)]">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#0D0D0D] border border-[rgba(201,164,92,0.12)]">
             <span className="w-1.5 h-1.5 rounded-full bg-[#32D583]" />
             <span className="text-[10px] font-mono text-[#A6A6A0]">Local</span>
           </div>
@@ -82,7 +82,7 @@ export default function MobileNav() {
           <button
             onClick={() => setIsOpen(!isOpen)}
             aria-label="Toggle Navigation Menu"
-            className="w-10 h-10 rounded-lg bg-[#0D0D0D] border border-[#1A1A1A] flex items-center justify-center text-[#A6A6A0] hover:text-[#F0C75E] transition-colors"
+            className="w-10 h-10 rounded-lg bg-[#0D0D0D] border border-[#1A1A1A] flex items-center justify-center text-[#A6A6A0] hover:text-[#D8B46E] transition-colors"
           >
             {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -133,13 +133,13 @@ export default function MobileNav() {
                     href={item.href}
                     className={`flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
                       isActive
-                        ? "bg-[#111111] text-[#D4AF37] border border-[rgba(212,175,55,0.25)] shadow-[0_0_12px_rgba(212,175,55,0.08)] font-semibold"
-                        : "text-[#A6A6A0] hover:text-[#F0C75E] hover:bg-[#0D0D0D]"
+                        ? "bg-[#1A160F] text-[#C9A45C] border border-[rgba(201,164,92,0.30)] shadow-[0_0_12px_rgba(201,164,92,0.08)] font-semibold"
+                        : "text-[#A6A6A0] hover:text-[#D8B46E] hover:bg-[#0D0D0D]"
                     }`}
                   >
                     <Icon
                       className={`w-4 h-4 ${
-                        isActive ? "text-[#D4AF37]" : "text-[#666660]"
+                        isActive ? "text-[#C9A45C]" : "text-[#666660]"
                       }`}
                     />
                     <span>{item.label}</span>
@@ -150,7 +150,7 @@ export default function MobileNav() {
 
             {/* Drawer Footer */}
             <div className="p-4 border-t border-[#1A1A1A] space-y-3">
-              <div className="p-3 rounded-xl bg-[#0D0D0D] border border-[rgba(212,175,55,0.12)]">
+              <div className="p-3 rounded-xl bg-[#0D0D0D] border border-[rgba(201,164,92,0.12)]">
                 <div className="flex items-center justify-between text-xs mb-1">
                   <span className="text-[#A6A6A0]">Local Intelligence</span>
                   <span className="text-[#32D583] font-mono font-medium">

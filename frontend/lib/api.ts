@@ -61,22 +61,24 @@ export interface QueryResponse {
 
 export interface HealthResponse {
   status: string;
-  mode: string;
-  service: string;
-  version: string;
-  moss: {
+  mode?: string;
+  service?: string;
+  version?: string;
+  llm_provider?: string;
+  llm_model?: string;
+  moss?: {
     index_name: string;
     has_official_sdk: boolean;
     configured: boolean;
     loaded_indexes: string[];
   };
-  local_ai: {
+  local_ai?: {
     provider: string;
     model: string;
     base_url: string;
     connected: boolean;
   };
-  workspace: {
+  workspace?: {
     total_files: number;
     total_chunks: number;
   };
@@ -118,18 +120,48 @@ export interface AnalyticsSummary {
   access_over_time: DailyAccessCount[];
 }
 
-const API_BASE = "";
+// Production & Development API Base URL resolution
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+
+async function extractErrorMessage(res: Response, defaultMessage: string): Promise<string> {
+  try {
+    const data = await res.json();
+    return data.detail || data.message || data.error || defaultMessage;
+  } catch {
+    return `${defaultMessage} (HTTP ${res.status}: ${res.statusText || "Server error"})`;
+  }
+}
 
 export async function fetchHealth(): Promise<HealthResponse> {
-  const res = await fetch(`${API_BASE}/api/health`, { cache: "no-store" });
-  if (!res.ok) throw new Error("Failed to connect to VEIL local service");
-  return res.json();
+  try {
+    const res = await fetch(`${API_BASE}/api/health`, { cache: "no-store" });
+    if (!res.ok) {
+      const err = await extractErrorMessage(res, "Backend health check failed");
+      throw new Error(err);
+    }
+    return res.json();
+  } catch (err: any) {
+    if (err.name === "TypeError" && err.message.includes("fetch")) {
+      throw new Error(`Backend unavailable at ${API_BASE || "local port 8000"}. Please verify server is running.`);
+    }
+    throw err;
+  }
 }
 
 export async function fetchFiles(): Promise<{ total_files: number; files: FileItem[] }> {
-  const res = await fetch(`${API_BASE}/api/files`, { cache: "no-store" });
-  if (!res.ok) throw new Error("Failed to fetch files");
-  return res.json();
+  try {
+    const res = await fetch(`${API_BASE}/api/files`, { cache: "no-store" });
+    if (!res.ok) {
+      const err = await extractErrorMessage(res, "Failed to fetch files");
+      throw new Error(err);
+    }
+    return res.json();
+  } catch (err: any) {
+    if (err.name === "TypeError" && err.message.includes("fetch")) {
+      throw new Error("Backend unavailable. Could not fetch files.");
+    }
+    throw err;
+  }
 }
 
 export async function uploadMultipleFiles(files: FileList | File[]): Promise<any> {
@@ -137,32 +169,48 @@ export async function uploadMultipleFiles(files: FileList | File[]): Promise<any
   for (let i = 0; i < files.length; i++) {
     formData.append("files", files[i]);
   }
-  const res = await fetch(`${API_BASE}/api/files/upload`, {
-    method: "POST",
-    body: formData,
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: "Upload failed" }));
-    throw new Error(err.detail || "Upload failed");
+  try {
+    const res = await fetch(`${API_BASE}/api/files/upload`, {
+      method: "POST",
+      body: formData,
+    });
+    if (!res.ok) {
+      const err = await extractErrorMessage(res, "File upload failed");
+      throw new Error(err);
+    }
+    return res.json();
+  } catch (err: any) {
+    if (err.name === "TypeError" && err.message.includes("fetch")) {
+      throw new Error("Backend unavailable. Could not complete file upload.");
+    }
+    throw err;
   }
-  return res.json();
 }
 
 export async function loadDemoFiles(): Promise<any> {
   const res = await fetch(`${API_BASE}/api/files/demo`, { method: "POST" });
-  if (!res.ok) throw new Error("Failed to load demo files");
+  if (!res.ok) {
+    const err = await extractErrorMessage(res, "Failed to load demo files");
+    throw new Error(err);
+  }
   return res.json();
 }
 
 export async function fetchFilePreview(fileId: string): Promise<FilePreviewResponse> {
   const res = await fetch(`${API_BASE}/api/files/${fileId}/preview`);
-  if (!res.ok) throw new Error("Failed to load file preview");
+  if (!res.ok) {
+    const err = await extractErrorMessage(res, "Failed to load file preview");
+    throw new Error(err);
+  }
   return res.json();
 }
 
 export async function deleteFileItem(fileId: string): Promise<any> {
   const res = await fetch(`${API_BASE}/api/files/${fileId}`, { method: "DELETE" });
-  if (!res.ok) throw new Error("Failed to delete file");
+  if (!res.ok) {
+    const err = await extractErrorMessage(res, "Failed to delete file");
+    throw new Error(err);
+  }
   return res.json();
 }
 
@@ -172,16 +220,23 @@ export async function runQuery(
   topK: number = 4,
   fileIds?: string[]
 ): Promise<QueryResponse> {
-  const res = await fetch(`${API_BASE}/api/query`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ question, mode, top_k: topK, file_ids: fileIds }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: "Query failed" }));
-    throw new Error(err.detail || "Query execution failed");
+  try {
+    const res = await fetch(`${API_BASE}/api/query`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question, mode, top_k: topK, file_ids: fileIds }),
+    });
+    if (!res.ok) {
+      const err = await extractErrorMessage(res, "Query execution failed");
+      throw new Error(err);
+    }
+    return res.json();
+  } catch (err: any) {
+    if (err.name === "TypeError" && err.message.includes("fetch")) {
+      throw new Error(`Cannot reach VEIL backend API at ${API_BASE || "local server"}. Please check server status.`);
+    }
+    throw err;
   }
-  return res.json();
 }
 
 export async function compareFiles(
@@ -193,7 +248,10 @@ export async function compareFiles(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ file_ids: fileIds, question }),
   });
-  if (!res.ok) throw new Error("Comparison failed");
+  if (!res.ok) {
+    const err = await extractErrorMessage(res, "Comparison failed");
+    throw new Error(err);
+  }
   return res.json();
 }
 
@@ -206,7 +264,10 @@ export async function analyzeFile(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ file_id: fileId, question }),
   });
-  if (!res.ok) throw new Error("Analysis failed");
+  if (!res.ok) {
+    const err = await extractErrorMessage(res, "Analysis failed");
+    throw new Error(err);
+  }
   return res.json();
 }
 
@@ -240,7 +301,10 @@ export async function saveSettings(settings: any): Promise<any> {
 
 export async function fetchAiModels(): Promise<{ active_model: string; models: string[]; count: number }> {
   const res = await fetch(`${API_BASE}/api/ai/models`, { cache: "no-store" });
-  if (!res.ok) throw new Error("Failed to fetch AI models");
+  if (!res.ok) {
+    const err = await extractErrorMessage(res, "Failed to fetch AI models");
+    throw new Error(err);
+  }
   return res.json();
 }
 
@@ -250,7 +314,10 @@ export async function selectAiModel(model: string): Promise<any> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ model }),
   });
-  if (!res.ok) throw new Error("Failed to select AI model");
+  if (!res.ok) {
+    const err = await extractErrorMessage(res, "Failed to select AI model");
+    throw new Error(err);
+  }
   return res.json();
 }
 
@@ -260,6 +327,9 @@ export async function testAiGeneration(prompt: string): Promise<any> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ prompt }),
   });
-  if (!res.ok) throw new Error("Test generation failed");
+  if (!res.ok) {
+    const err = await extractErrorMessage(res, "Test generation failed");
+    throw new Error(err);
+  }
   return res.json();
 }

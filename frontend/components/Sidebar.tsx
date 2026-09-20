@@ -30,13 +30,13 @@ export default function Sidebar() {
       <div className="h-16 flex items-center px-6 border-b border-[#1A1A1A]">
         <Link href="/" className="flex items-center gap-3 group">
           {/* Gold Cube SVG Icon */}
-          <div className="w-8 h-8 rounded-lg bg-[#0D0D0D] border border-[rgba(212,175,55,0.18)] flex items-center justify-center group-hover:border-[#D4AF37]/50 transition-colors">
+          <div className="w-8 h-8 rounded-lg bg-[#0D0D0D] border border-[rgba(201,164,92,0.18)] flex items-center justify-center group-hover:border-[#C9A45C]/50 transition-colors">
             <svg
               width="18"
               height="18"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="#D4AF37"
+              stroke="#C9A45C"
               strokeWidth="2.2"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -80,20 +80,20 @@ export default function Sidebar() {
               href={item.href}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-all group ${
                 isActive
-                  ? "bg-[#111111] text-[#D4AF37] border border-[rgba(212,175,55,0.25)] shadow-[0_0_12px_rgba(212,175,55,0.08)] font-semibold"
-                  : "text-[#A6A6A0] hover:text-[#F0C75E] hover:bg-[#0D0D0D] border border-transparent"
+                  ? "bg-[#1A160F] text-[#C9A45C] border border-[rgba(201,164,92,0.30)] shadow-[0_0_12px_rgba(201,164,92,0.08)] font-semibold"
+                  : "text-[#A6A6A0] hover:text-[#D8B46E] hover:bg-[#0D0D0D] border border-transparent"
               }`}
             >
               <Icon
                 className={`w-4 h-4 transition-colors ${
                   isActive
-                    ? "text-[#D4AF37]"
-                    : "text-[#666660] group-hover:text-[#F0C75E]"
+                    ? "text-[#C9A45C]"
+                    : "text-[#666660] group-hover:text-[#D8B46E]"
                 }`}
               />
               <span>{item.label}</span>
               {isActive && (
-                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#D4AF37] shadow-[0_0_6px_#D4AF37]" />
+                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#C9A45C] shadow-[0_0_6px_#C9A45C]" />
               )}
             </Link>
           );
@@ -106,22 +106,22 @@ export default function Sidebar() {
           href="/settings"
           className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-all group ${
             pathname.startsWith("/settings")
-              ? "bg-[#111111] text-[#D4AF37] border border-[rgba(212,175,55,0.25)]"
-              : "text-[#A6A6A0] hover:text-[#F0C75E] hover:bg-[#0D0D0D] border border-transparent"
+              ? "bg-[#1A160F] text-[#C9A45C] border border-[rgba(201,164,92,0.30)]"
+              : "text-[#A6A6A0] hover:text-[#D8B46E] hover:bg-[#0D0D0D] border border-transparent"
           }`}
         >
           <Settings
             className={`w-4 h-4 ${
               pathname.startsWith("/settings")
-                ? "text-[#D4AF37]"
-                : "text-[#666660] group-hover:text-[#F0C75E]"
+                ? "text-[#C9A45C]"
+                : "text-[#666660] group-hover:text-[#D8B46E]"
             }`}
           />
           <span>Settings</span>
         </Link>
 
         {/* Local Security Status Badge */}
-        <div className="px-3 py-2 rounded-lg bg-[#0D0D0D] border border-[rgba(212,175,55,0.12)] flex items-center justify-between">
+        <div className="px-3 py-2 rounded-lg bg-[#0D0D0D] border border-[rgba(201,164,92,0.12)] flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#32D583] opacity-75"></span>

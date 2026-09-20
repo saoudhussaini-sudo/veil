@@ -11,15 +11,15 @@ body {
   color: #F5F5F0;
   background-color: #050505;
   background-image: 
-    radial-gradient(ellipse 80% 40% at 50% -5%, rgba(212, 175, 55, 0.03), transparent 70%),
-    radial-gradient(ellipse 60% 40% at 50% 105%, rgba(212, 175, 55, 0.02), transparent 75%);
+    radial-gradient(ellipse 80% 40% at 50% -5%, rgba(201, 164, 92, 0.03), transparent 70%),
+    radial-gradient(ellipse 60% 40% at 50% 105%, rgba(201, 164, 92, 0.02), transparent 75%);
   background-attachment: fixed;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   overflow-x: hidden;
 }
 
 ::selection {
-  background: rgba(212, 175, 55, 0.25);
+  background: rgba(201, 164, 92, 0.25);
   color: #FFFFFF;
 }
 

@@ -10,7 +10,7 @@ interface AppShellProps {
 
 export default function AppShell({ children }: AppShellProps) {
   return (
-    <div className="min-h-screen bg-[#050505] text-[#F5F5F0] flex flex-col md:flex-row antialiased selection:bg-[#D4AF37]/25 selection:text-white">
+    <div className="min-h-screen bg-[#050505] text-[#F5F5F0] flex flex-col md:flex-row antialiased selection:bg-[#C9A45C]/25 selection:text-white">
       {/* Desktop Fixed Sidebar */}
       <Sidebar />
 

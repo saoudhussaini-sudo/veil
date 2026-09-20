@@ -14,12 +14,14 @@ def parse_file_content(filename: str, file_bytes: bytes) -> Tuple[str, str]:
     
     if ext == ".pdf":
         return parse_pdf(file_bytes), "pdf"
+    elif ext in [".docx", ".doc"]:
+        return parse_docx(file_bytes), "docx"
     elif ext in [".md", ".markdown"]:
         return parse_text(file_bytes), "markdown"
     elif ext == ".txt":
         return parse_text(file_bytes), "txt"
-    elif ext in [".py", ".ts", ".js", ".jsx", ".tsx", ".json", ".yaml", ".yml", ".toml", ".csv", ".html", ".css", ".sh"]:
-        return parse_text(file_bytes), "code"
+    elif ext in [".py", ".ts", ".js", ".jsx", ".tsx", ".json", ".yaml", ".yml", ".toml", ".csv", ".tsv", ".html", ".css", ".sh"]:
+        return parse_text(file_bytes), "code" if ext != ".csv" else "table"
     else:
         # Fallback to general text attempt
         try:
@@ -44,6 +46,22 @@ def parse_pdf(file_bytes: bytes) -> str:
     except Exception as e:
         logger.error(f"Failed to parse PDF: {e}")
         raise ValueError(f"Failed to parse PDF document: {str(e)}")
+
+def parse_docx(file_bytes: bytes) -> str:
+    """Extracts text from Word documents using python-docx if available."""
+    try:
+        import docx
+        doc = docx.Document(io.BytesIO(file_bytes))
+        paragraphs = [p.text for p in doc.paragraphs if p.text.strip()]
+        if not paragraphs:
+            return "Document has no extractable text paragraphs."
+        return "\n\n".join(paragraphs)
+    except ImportError:
+        logger.warning("python-docx not installed, attempting fallback text parsing.")
+        return parse_text(file_bytes)
+    except Exception as e:
+        logger.error(f"Failed to parse DOCX: {e}")
+        raise ValueError(f"Failed to parse Word document: {str(e)}")
 
 def parse_text(file_bytes: bytes) -> str:
     """Decodes text bytes trying utf-8, utf-8-sig, and latin-1."""

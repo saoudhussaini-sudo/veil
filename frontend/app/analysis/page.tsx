@@ -109,10 +109,10 @@ export default function AnalysisPage() {
   return (
     <div className="flex-1 flex flex-col max-w-6xl w-full mx-auto px-4 sm:px-8 py-8 sm:py-12 space-y-8">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-6 border-b border-[rgba(212,175,55,0.12)]">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-6 border-b border-[rgba(201,164,92,0.12)]">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-mono tracking-widest text-[#D4AF37] uppercase">
+            <span className="text-[11px] font-mono tracking-widest text-[#C9A45C] uppercase">
               ANALYSIS
             </span>
             <span className="text-[#666660]">/</span>
@@ -138,9 +138,9 @@ export default function AnalysisPage() {
           />
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#0D0D0D] hover:bg-[#111111] border border-[rgba(212,175,55,0.12)] hover:border-[rgba(212,175,55,0.30)] text-[#A6A6A0] hover:text-[#F5F5F0] text-xs font-medium transition-all"
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#0D0D0D] hover:bg-[#111111] border border-[rgba(201,164,92,0.12)] hover:border-[rgba(201,164,92,0.30)] text-[#A6A6A0] hover:text-[#F5F5F0] text-xs font-medium transition-all"
           >
-            <Upload className="w-3.5 h-3.5 text-[#D4AF37]" />
+            <Upload className="w-3.5 h-3.5 text-[#C9A45C]" />
             <span>Upload File</span>
           </button>
         </div>
@@ -159,8 +159,8 @@ export default function AnalysisPage() {
               }}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-mono tracking-wider transition-all ${
                 isCurrent
-                  ? "bg-[#111111] text-[#F0C75E] border border-[rgba(212,175,55,0.40)] shadow-[0_0_12px_rgba(212,175,55,0.12)] font-semibold"
-                  : "bg-[#0D0D0D] text-[#A6A6A0] hover:text-[#F5F5F0] border border-[rgba(212,175,55,0.12)] hover:bg-[#111111]"
+                  ? "bg-[#1A160F] text-[#C9A45C] border border-[rgba(201,164,92,0.40)] shadow-[0_0_12px_rgba(201,164,92,0.12)] font-semibold"
+                  : "bg-[#0D0D0D] text-[#A6A6A0] hover:text-[#F5F5F0] border border-[rgba(201,164,92,0.12)] hover:bg-[#111111]"
               }`}
             >
               {m.label}
@@ -177,15 +177,15 @@ export default function AnalysisPage() {
             <span className="text-[10px] font-mono uppercase tracking-widest text-[#666660]">
               FILE / DATA
             </span>
-            <span className="text-[10px] font-mono text-[#D4AF37]">
+            <span className="text-[10px] font-mono text-[#C9A45C]">
               {files.length} indexed
             </span>
           </div>
 
-          <div className="rounded-2xl border border-[rgba(212,175,55,0.12)] bg-[#0D0D0D] p-3 space-y-2 max-h-96 overflow-y-auto">
+          <div className="rounded-2xl border border-[rgba(201,164,92,0.12)] bg-[#0D0D0D] p-3 space-y-2 max-h-96 overflow-y-auto">
             {loadingFiles ? (
               <div className="p-4 text-center text-xs font-mono text-[#666660] flex items-center justify-center gap-2">
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-[#D4AF37]" />
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-[#C9A45C]" />
                 <span>Loading files...</span>
               </div>
             ) : files.length === 0 ? (
@@ -202,13 +202,13 @@ export default function AnalysisPage() {
                     }}
                     className={`p-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-2.5 ${
                       isSelected
-                        ? "bg-[#111111] border border-[rgba(212,175,55,0.40)] text-[#F5F5F0]"
+                        ? "bg-[#1A160F] border border-[rgba(201,164,92,0.40)] text-[#F5F5F0]"
                         : "hover:bg-[#111111] border border-transparent text-[#A6A6A0]"
                     }`}
                   >
                     <FileText
                       className={`w-4 h-4 shrink-0 ${
-                        isSelected ? "text-[#D4AF37]" : "text-[#666660]"
+                        isSelected ? "text-[#C9A45C]" : "text-[#666660]"
                       }`}
                     />
                     <div className="min-w-0 flex-1">
@@ -238,7 +238,7 @@ export default function AnalysisPage() {
           </div>
 
           {/* Analysis Action Box */}
-          <div className="p-4 rounded-2xl border border-[rgba(212,175,55,0.12)] bg-[#0D0D0D] space-y-3">
+          <div className="p-4 rounded-2xl border border-[rgba(201,164,92,0.12)] bg-[#0D0D0D] space-y-3">
             <div className="space-y-1">
               <label className="text-[11px] font-mono text-[#A6A6A0] uppercase">
                 Directive / Focus:
@@ -248,7 +248,7 @@ export default function AnalysisPage() {
                 value={customPrompt}
                 onChange={(e) => setCustomPrompt(e.target.value)}
                 placeholder={modePrompts[mode]}
-                className="w-full bg-[#090909] border border-[rgba(255,255,255,0.08)] focus:border-[#D4AF37] rounded-xl p-3 text-xs text-[#F5F5F0] placeholder-[#666660] focus:outline-none resize-none transition-colors"
+                className="w-full bg-[#090909] border border-[rgba(255,255,255,0.08)] focus:border-[#C9A45C] rounded-xl p-3 text-xs text-[#F5F5F0] placeholder-[#666660] focus:outline-none resize-none transition-colors"
               />
             </div>
 
@@ -260,7 +260,7 @@ export default function AnalysisPage() {
               <button
                 onClick={handleExecuteAnalysis}
                 disabled={!selectedFile || isAnalyzing}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#D4AF37] hover:bg-[#F0C75E] text-[#050505] font-semibold text-xs transition-all shadow-[0_0_12px_rgba(212,175,55,0.2)] disabled:opacity-40"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#C9A45C] hover:bg-[#D8B46E] text-[#050505] font-semibold text-xs transition-all shadow-[0_0_12px_rgba(201,164,92,0.2)] disabled:opacity-40"
               >
                 {isAnalyzing ? (
                   <>
@@ -279,9 +279,9 @@ export default function AnalysisPage() {
 
           {/* Analysis Output View */}
           {result ? (
-            <div className="p-5 rounded-2xl border border-[rgba(212,175,55,0.12)] bg-[#0D0D0D] space-y-4 animate-in fade-in">
-              <div className="flex items-center justify-between pb-3 border-b border-[rgba(212,175,55,0.12)]">
-                <span className="text-[10px] font-mono uppercase tracking-widest text-[#D4AF37]">
+            <div className="p-5 rounded-2xl border border-[rgba(201,164,92,0.12)] bg-[#0D0D0D] space-y-4 animate-in fade-in">
+              <div className="flex items-center justify-between pb-3 border-b border-[rgba(201,164,92,0.12)]">
+                <span className="text-[10px] font-mono uppercase tracking-widest text-[#C9A45C]">
                   SYNTHESIS REPORT
                 </span>
                 <span className="text-[10px] font-mono text-[#666660]">
@@ -296,7 +296,7 @@ export default function AnalysisPage() {
               </article>
             </div>
           ) : (
-            <div className="p-10 rounded-2xl border border-[rgba(212,175,55,0.12)] bg-[#0D0D0D]/50 text-center space-y-2">
+            <div className="p-10 rounded-2xl border border-[rgba(201,164,92,0.12)] bg-[#0D0D0D]/50 text-center space-y-2">
               <p className="text-xs text-[#A6A6A0]">Select a file and click "Run {mode}"</p>
               <p className="text-[10px] text-[#666660]">
                 Intelligence will be generated locally via Ollama with Moss retrieval grounding.
@@ -311,7 +311,7 @@ export default function AnalysisPage() {
             INSIGHTS & METRICS
           </span>
 
-          <div className="rounded-2xl border border-[rgba(212,175,55,0.12)] bg-[#0D0D0D] p-4 space-y-4">
+          <div className="rounded-2xl border border-[rgba(201,164,92,0.12)] bg-[#0D0D0D] p-4 space-y-4">
             <div className="space-y-1">
               <span className="text-[10px] font-mono text-[#666660] uppercase">
                 Active Document
@@ -325,7 +325,7 @@ export default function AnalysisPage() {
               <span className="text-[10px] font-mono text-[#666660] uppercase">
                 Retrieval Engine
               </span>
-              <p className="text-xs font-mono text-[#D4AF37]">
+              <p className="text-xs font-mono text-[#C9A45C]">
                 {result?.moss?.passages || 0} chunks retrieved ({result?.moss?.latencyMs?.toFixed(1) || 0}ms)
               </p>
             </div>
@@ -339,10 +339,10 @@ export default function AnalysisPage() {
                   {result.sources.map((s, i) => (
                     <div
                       key={i}
-                      className="p-2 rounded-lg bg-[#090909] border border-[rgba(212,175,55,0.12)] text-[10px] font-mono text-[#A6A6A0] flex items-center justify-between"
+                      className="p-2 rounded-lg bg-[#090909] border border-[rgba(201,164,92,0.12)] text-[10px] font-mono text-[#A6A6A0] flex items-center justify-between"
                     >
                       <span className="truncate max-w-[120px]">{s.title}</span>
-                      {s.page && <span className="text-[#D4AF37]">p.{s.page}</span>}
+                      {s.page && <span className="text-[#C9A45C]">p.{s.page}</span>}
                     </div>
                   ))}
                 </div>
@@ -353,7 +353,7 @@ export default function AnalysisPage() {
               )}
             </div>
 
-            <div className="pt-2 border-t border-[rgba(212,175,55,0.12)] space-y-1">
+            <div className="pt-2 border-t border-[rgba(201,164,92,0.12)] space-y-1">
               <span className="text-[10px] font-mono text-[#666660] uppercase">
                 Data Privacy
               </span>

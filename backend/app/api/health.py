@@ -23,8 +23,10 @@ async def get_health():
     chunks = file_storage.get_all_chunks()
 
     return {
-        "status": "HEALTHY",
-        "mode": "LOCAL_FIRST",
+        "status": "ok",
+        "llm_provider": settings.LLM_PROVIDER,
+        "llm_model": local_ai_service.model,
+        "mode": "LOCAL_FIRST" if settings.LLM_PROVIDER == "OLLAMA_LOCAL" else "PRODUCTION_CLOUD",
         "service": settings.PROJECT_NAME,
         "version": settings.VERSION,
         "moss": {
@@ -34,9 +36,9 @@ async def get_health():
             "loaded_indexes": list(moss_service.loaded_indexes)
         },
         "local_ai": {
-            "provider": ai_status.get("provider", settings.LOCAL_AI_PROVIDER),
-            "model": ai_status.get("model", settings.LOCAL_AI_MODEL),
-            "base_url": settings.LOCAL_AI_BASE_URL,
+            "provider": ai_status.get("provider", settings.LLM_PROVIDER),
+            "model": ai_status.get("model", local_ai_service.model),
+            "base_url": local_ai_service.base_url,
             "connected": ai_status.get("connected", True)
         },
         "workspace": {

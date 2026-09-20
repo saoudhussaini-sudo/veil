@@ -146,11 +146,11 @@ export default function FilesPage() {
 
   const getFileIcon = (ext: string) => {
     const e = ext.toLowerCase();
-    if (e === ".pdf") return <FileText className="w-4 h-4 text-[#D4AF37]" />;
+    if (e === ".pdf") return <FileText className="w-4 h-4 text-[#C9A45C]" />;
     if (e === ".csv" || e === ".xlsx")
       return <FileSpreadsheet className="w-4 h-4 text-[#32D583]" />;
     if (e === ".py" || e === ".ts" || e === ".js" || e === ".json")
-      return <FileCode className="w-4 h-4 text-[#F0C75E]" />;
+      return <FileCode className="w-4 h-4 text-[#D8B46E]" />;
     return <FileText className="w-4 h-4 text-[#A6A6A0]" />;
   };
 
@@ -168,7 +168,7 @@ export default function FilesPage() {
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-6 border-b border-[#1A1A1A]">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-mono tracking-widest text-[#D4AF37] uppercase">
+            <span className="text-[11px] font-mono tracking-widest text-[#C9A45C] uppercase">
               VEIL
             </span>
             <span className="text-[#666660]">/</span>
@@ -188,12 +188,12 @@ export default function FilesPage() {
         <button
           onClick={handleLoadDemo}
           disabled={isDemoLoading}
-          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#0D0D0D] hover:bg-[#141414] border border-[#1A1A1A] hover:border-[rgba(212,175,55,0.3)] text-[#A6A6A0] hover:text-[#F5F5F0] font-medium text-xs transition-all disabled:opacity-40 shrink-0"
+          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#0D0D0D] hover:bg-[#141414] border border-[#1A1A1A] hover:border-[rgba(201,164,92,0.3)] text-[#A6A6A0] hover:text-[#F5F5F0] font-medium text-xs transition-all disabled:opacity-40 shrink-0"
         >
           {isDemoLoading ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin text-[#D4AF37]" />
+            <Loader2 className="w-3.5 h-3.5 animate-spin text-[#C9A45C]" />
           ) : (
-            <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" />
+            <Sparkles className="w-3.5 h-3.5 text-[#C9A45C]" />
           )}
           <span>Load Demo Files</span>
         </button>
@@ -216,15 +216,15 @@ export default function FilesPage() {
         onDrop={handleDrop}
         className={`p-10 sm:p-12 rounded-2xl border border-dashed transition-all text-center cursor-pointer group select-none ${
           dragActive
-            ? "border-[#D4AF37] bg-[#111111] shadow-[0_0_24px_rgba(212,175,55,0.12)]"
-            : "border-[#1A1A1A] bg-[#0D0D0D] hover:border-[rgba(212,175,55,0.3)] hover:bg-[#111111]"
+            ? "border-[#C9A45C] bg-[#111111] shadow-[0_0_24px_rgba(201,164,92,0.12)]"
+            : "border-[#1A1A1A] bg-[#0D0D0D] hover:border-[rgba(201,164,92,0.3)] hover:bg-[#111111]"
         }`}
       >
-        <div className="w-12 h-12 rounded-xl bg-[#111111] border border-[rgba(212,175,55,0.15)] flex items-center justify-center mx-auto mb-4 group-hover:border-[#D4AF37]/50 transition-colors">
+        <div className="w-12 h-12 rounded-xl bg-[#111111] border border-[rgba(201,164,92,0.15)] flex items-center justify-center mx-auto mb-4 group-hover:border-[#C9A45C]/50 transition-colors">
           {isUploading ? (
-            <Loader2 className="w-5 h-5 text-[#D4AF37] animate-spin" />
+            <Loader2 className="w-5 h-5 text-[#C9A45C] animate-spin" />
           ) : (
-            <Upload className="w-5 h-5 text-[#A6A6A0] group-hover:text-[#D4AF37] transition-colors" />
+            <Upload className="w-5 h-5 text-[#A6A6A0] group-hover:text-[#C9A45C] transition-colors" />
           )}
         </div>
 
@@ -250,7 +250,7 @@ export default function FilesPage() {
             <span className="text-xs font-mono uppercase tracking-widest text-[#666660]">
               YOUR FILES
             </span>
-            <span className="px-2 py-0.5 rounded-full bg-[#0D0D0D] border border-[rgba(212,175,55,0.15)] text-[10px] font-mono text-[#D4AF37]">
+            <span className="px-2 py-0.5 rounded-full bg-[#0D0D0D] border border-[rgba(201,164,92,0.15)] text-[10px] font-mono text-[#C9A45C]">
               {files.length}
             </span>
           </div>
@@ -263,26 +263,26 @@ export default function FilesPage() {
               placeholder="Search files..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[#090909] border border-[rgba(255,255,255,0.08)] rounded-xl pl-9 pr-3 py-1.5 text-xs text-[#F5F5F0] placeholder-[#666660] focus:outline-none focus:border-[#D4AF37]/60"
+              className="w-full bg-[#090909] border border-[rgba(255,255,255,0.08)] rounded-xl pl-9 pr-3 py-1.5 text-xs text-[#F5F5F0] placeholder-[#666660] focus:outline-none focus:border-[#C9A45C]/60"
             />
           </div>
         </div>
 
-        {/* Minimal Table / List (Cards #0D0D0D with rgba(212,175,55,0.12) border) */}
+        {/* Minimal Table / List (Cards #0D0D0D with rgba(201,164,92,0.12) border) */}
         {loading ? (
           <div className="p-12 text-center text-xs font-mono text-[#666660] flex items-center justify-center gap-2">
-            <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" />
+            <Loader2 className="w-4 h-4 animate-spin text-[#C9A45C]" />
             <span>Loading local index...</span>
           </div>
         ) : filteredFiles.length === 0 ? (
-          <div className="p-12 rounded-2xl border border-[rgba(212,175,55,0.12)] bg-[#0D0D0D] text-center space-y-2">
+          <div className="p-12 rounded-2xl border border-[rgba(201,164,92,0.12)] bg-[#0D0D0D] text-center space-y-2">
             <p className="text-sm text-[#A6A6A0]">No files in your local workspace.</p>
             <p className="text-xs text-[#666660]">
               Drop documents above or click "Load Demo Files" to start.
             </p>
           </div>
         ) : (
-          <div className="rounded-xl border border-[rgba(212,175,55,0.12)] bg-[#0D0D0D] overflow-hidden divide-y divide-[#1A1A1A]">
+          <div className="rounded-xl border border-[rgba(201,164,92,0.12)] bg-[#0D0D0D] overflow-hidden divide-y divide-[#1A1A1A]">
             {filteredFiles.map((file) => {
               const isScanned =
                 file.index_status === "scanned" ||
@@ -299,7 +299,7 @@ export default function FilesPage() {
                       {getFileIcon(file.file_ext)}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-xs sm:text-sm font-medium text-[#F5F5F0] truncate group-hover:text-[#F0C75E] transition-colors">
+                      <p className="text-xs sm:text-sm font-medium text-[#F5F5F0] truncate group-hover:text-[#D8B46E] transition-colors">
                         {file.original_name || file.filename}
                       </p>
                       <div className="flex items-center gap-2 text-[10px] font-mono text-[#666660] mt-0.5">
@@ -315,7 +315,7 @@ export default function FilesPage() {
                   {/* Right side: Status and actions */}
                   <div className="flex items-center gap-3 shrink-0">
                     {isScanned ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-mono bg-[#D4AF37]/10 text-[#D4AF37] border border-[#D4AF37]/25">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-mono bg-[#C9A45C]/10 text-[#C9A45C] border border-[#C9A45C]/25">
                         <AlertTriangle className="w-3 h-3" />
                         <span className="hidden sm:inline">OCR Required</span>
                       </span>
@@ -361,7 +361,7 @@ export default function FilesPage() {
             {/* Drawer Header */}
             <div className="h-16 px-6 flex items-center justify-between border-b border-[#1A1A1A]">
               <div className="flex items-center gap-2 min-w-0">
-                <FileText className="w-4 h-4 text-[#D4AF37] shrink-0" />
+                <FileText className="w-4 h-4 text-[#C9A45C] shrink-0" />
                 <h3 className="text-sm font-semibold text-[#F5F5F0] truncate">
                   {selectedFile.original_name || selectedFile.filename}
                 </h3>
@@ -378,25 +378,25 @@ export default function FilesPage() {
             <div className="flex-1 p-6 space-y-6 overflow-y-auto">
               {/* Metadata Grid */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 rounded-xl bg-[#0D0D0D] border border-[rgba(212,175,55,0.12)] space-y-1">
+                <div className="p-3 rounded-xl bg-[#0D0D0D] border border-[rgba(201,164,92,0.12)] space-y-1">
                   <span className="text-[10px] font-mono text-[#666660] uppercase">Size</span>
                   <p className="text-xs font-mono font-medium text-[#F5F5F0]">
                     {formatSize(selectedFile.file_size)}
                   </p>
                 </div>
-                <div className="p-3 rounded-xl bg-[#0D0D0D] border border-[rgba(212,175,55,0.12)] space-y-1">
+                <div className="p-3 rounded-xl bg-[#0D0D0D] border border-[rgba(201,164,92,0.12)] space-y-1">
                   <span className="text-[10px] font-mono text-[#666660] uppercase">Format</span>
                   <p className="text-xs font-mono font-medium text-[#F5F5F0]">
                     {selectedFile.file_ext?.toUpperCase() || "UNKNOWN"}
                   </p>
                 </div>
-                <div className="p-3 rounded-xl bg-[#0D0D0D] border border-[rgba(212,175,55,0.12)] space-y-1">
+                <div className="p-3 rounded-xl bg-[#0D0D0D] border border-[rgba(201,164,92,0.12)] space-y-1">
                   <span className="text-[10px] font-mono text-[#666660] uppercase">Chunks</span>
-                  <p className="text-xs font-mono font-medium text-[#D4AF37]">
+                  <p className="text-xs font-mono font-medium text-[#C9A45C]">
                     {selectedFile.chunk_count || 0} indexed
                   </p>
                 </div>
-                <div className="p-3 rounded-xl bg-[#0D0D0D] border border-[rgba(212,175,55,0.12)] space-y-1">
+                <div className="p-3 rounded-xl bg-[#0D0D0D] border border-[rgba(201,164,92,0.12)] space-y-1">
                   <span className="text-[10px] font-mono text-[#666660] uppercase">Status</span>
                   <p className="text-xs font-mono font-medium text-[#32D583]">
                     {selectedFile.index_status || "Ready"}
@@ -407,12 +407,12 @@ export default function FilesPage() {
               {/* Scanned warning if detected */}
               {(selectedFile.index_status === "scanned" ||
                 selectedFile.processing_status?.includes("OCR")) && (
-                <div className="p-3.5 rounded-xl bg-[#D4AF37]/10 border border-[#D4AF37]/30 space-y-1">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-[#D4AF37]">
+                <div className="p-3.5 rounded-xl bg-[#C9A45C]/10 border border-[#C9A45C]/30 space-y-1">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-[#C9A45C]">
                     <AlertTriangle className="w-3.5 h-3.5" />
                     <span>Scanned Document</span>
                   </div>
-                  <p className="text-[11px] text-[#D4AF37]/80 leading-relaxed">
+                  <p className="text-[11px] text-[#C9A45C]/80 leading-relaxed">
                     Text extraction requires OCR. This file is preserved in storage but excluded from semantic retrieval.
                   </p>
                 </div>
@@ -425,7 +425,7 @@ export default function FilesPage() {
                 </span>
                 {previewLoading ? (
                   <div className="p-8 text-center text-xs font-mono text-[#666660] flex items-center justify-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" />
+                    <Loader2 className="w-4 h-4 animate-spin text-[#C9A45C]" />
                     <span>Loading preview...</span>
                   </div>
                 ) : previewData?.extracted_text_preview ? (

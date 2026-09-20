@@ -85,7 +85,7 @@ export default function WorkspacePage() {
       {/* Header Eyebrow & Title */}
       <div className="space-y-1 pb-8">
         <div className="flex items-center gap-2">
-          <span className="text-[11px] font-mono tracking-widest text-[#D4AF37] uppercase">
+          <span className="text-[11px] font-mono tracking-widest text-[#C9A45C] uppercase">
             VEIL
           </span>
           <span className="text-[#666660]">/</span>
@@ -102,7 +102,7 @@ export default function WorkspacePage() {
       {!response ? (
         <div className="flex-1 flex flex-col justify-center space-y-8 my-auto py-8">
           {/* Large Minimal Input Box (Black #090909 base with subtle gold focus) */}
-          <div className="rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[#090909] focus-within:border-[#D4AF37]/60 focus-within:shadow-[0_0_24px_rgba(212,175,55,0.08)] transition-all p-4 space-y-4">
+          <div className="rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[#090909] focus-within:border-[#C9A45C]/60 focus-within:shadow-[0_0_24px_rgba(201,164,92,0.08)] transition-all p-4 space-y-4">
             <textarea
               ref={textareaRef}
               rows={3}
@@ -128,7 +128,7 @@ export default function WorkspacePage() {
                       onClick={() => setMode(sc.id)}
                       className={`px-2.5 py-1 rounded-md text-[10px] font-mono tracking-wider uppercase transition-all ${
                         isSelected
-                          ? "bg-[#111111] text-[#D4AF37] border border-[rgba(212,175,55,0.3)] font-semibold"
+                          ? "bg-[#1A160F] text-[#C9A45C] border border-[rgba(201,164,92,0.3)] font-semibold"
                           : sc.disabled
                           ? "text-[#666660]/40 cursor-not-allowed border border-transparent"
                           : "text-[#666660] hover:text-[#A6A6A0] hover:bg-[#111111] border border-transparent"
@@ -145,7 +145,7 @@ export default function WorkspacePage() {
                 type="button"
                 onClick={() => handleSubmit()}
                 disabled={!question.trim() || loading}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#D4AF37] hover:bg-[#F0C75E] text-[#050505] font-semibold text-xs transition-all shadow-[0_0_12px_rgba(212,175,55,0.2)] disabled:opacity-30 disabled:cursor-not-allowed active:scale-95"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#C9A45C] hover:bg-[#D8B46E] text-[#050505] font-semibold text-xs transition-all shadow-[0_0_12px_rgba(201,164,92,0.2)] disabled:opacity-30 disabled:cursor-not-allowed active:scale-95"
               >
                 {loading ? (
                   <>
@@ -175,7 +175,7 @@ export default function WorkspacePage() {
                     setQuestion(pill);
                     handleSubmit(pill);
                   }}
-                  className="px-3.5 py-2 rounded-xl bg-[#0D0D0D] hover:bg-[#141414] border border-[#1A1A1A] hover:border-[rgba(212,175,55,0.3)] text-xs text-[#A6A6A0] hover:text-[#F5F5F0] transition-all text-left"
+                  className="px-3.5 py-2 rounded-xl bg-[#0D0D0D] hover:bg-[#141414] border border-[#1A1A1A] hover:border-[rgba(201,164,92,0.3)] text-xs text-[#A6A6A0] hover:text-[#F5F5F0] transition-all text-left"
                 >
                   {pill}
                 </button>
@@ -206,7 +206,7 @@ export default function WorkspacePage() {
 
             <button
               onClick={resetQuery}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0D0D0D] hover:bg-[#141414] border border-[#1A1A1A] hover:border-[rgba(212,175,55,0.3)] text-xs font-medium text-[#A6A6A0] hover:text-[#F5F5F0] transition-all shrink-0"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0D0D0D] hover:bg-[#141414] border border-[#1A1A1A] hover:border-[rgba(201,164,92,0.3)] text-xs font-medium text-[#A6A6A0] hover:text-[#F5F5F0] transition-all shrink-0"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>New query</span>
@@ -214,11 +214,11 @@ export default function WorkspacePage() {
           </div>
 
           {/* Subtle Metadata Strip */}
-          <div className="flex flex-wrap items-center gap-3 sm:gap-6 py-2 px-3.5 rounded-lg bg-[#0D0D0D] border border-[rgba(212,175,55,0.12)] text-[11px] font-mono text-[#666660]">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-6 py-2 px-3.5 rounded-lg bg-[#0D0D0D] border border-[rgba(201,164,92,0.12)] text-[11px] font-mono text-[#666660]">
             <div className="flex items-center gap-1.5">
               <span>ROUTE</span>
               <span className="text-[#A6A6A0]">·</span>
-              <span className="text-[#D4AF37] font-semibold">
+              <span className="text-[#C9A45C] font-semibold">
                 {response.routing?.mode || "DIRECT"}
               </span>
             </div>
@@ -268,8 +268,8 @@ export default function WorkspacePage() {
                 className="flex items-center justify-between w-full text-left group"
               >
                 <div className="flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-[#D4AF37]" />
-                  <span className="text-xs font-mono uppercase tracking-widest text-[#A6A6A0] group-hover:text-[#F0C75E] transition-colors">
+                  <FileText className="w-4 h-4 text-[#C9A45C]" />
+                  <span className="text-xs font-mono uppercase tracking-widest text-[#A6A6A0] group-hover:text-[#D8B46E] transition-colors">
                     Grounding Sources ({response.sources.length})
                   </span>
                 </div>
@@ -285,14 +285,14 @@ export default function WorkspacePage() {
                   {response.sources.map((src, i) => (
                     <div
                       key={i}
-                      className="p-3.5 rounded-xl bg-[#0D0D0D] border border-[rgba(212,175,55,0.12)] hover:border-[rgba(212,175,55,0.30)] transition-colors space-y-1.5"
+                      className="p-3.5 rounded-xl bg-[#0D0D0D] border border-[rgba(201,164,92,0.12)] hover:border-[rgba(201,164,92,0.30)] transition-colors space-y-1.5"
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-xs font-medium text-[#F5F5F0] truncate">
                           {src.title || src.file_name || "Document"}
                         </span>
                         {src.page && (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#111111] text-[#D4AF37] border border-[rgba(212,175,55,0.25)] shrink-0">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#1A160F] text-[#C9A45C] border border-[rgba(201,164,92,0.25)] shrink-0">
                             Page {src.page}
                           </span>
                         )}
@@ -312,7 +312,7 @@ export default function WorkspacePage() {
 
           {/* Quick Follow-up Input */}
           <div className="pt-8 border-t border-[#1A1A1A]">
-            <div className="flex items-center gap-3 p-2.5 rounded-xl bg-[#090909] border border-[rgba(255,255,255,0.08)] focus-within:border-[#D4AF37]/60">
+            <div className="flex items-center gap-3 p-2.5 rounded-xl bg-[#090909] border border-[rgba(255,255,255,0.08)] focus-within:border-[#C9A45C]/60">
               <input
                 type="text"
                 value={question}
@@ -326,7 +326,7 @@ export default function WorkspacePage() {
               <button
                 onClick={() => handleSubmit()}
                 disabled={!question.trim() || loading}
-                className="px-3.5 py-1.5 rounded-lg bg-[#D4AF37] hover:bg-[#F0C75E] text-[#050505] font-semibold text-xs transition-all disabled:opacity-30"
+                className="px-3.5 py-1.5 rounded-lg bg-[#C9A45C] hover:bg-[#D8B46E] text-[#050505] font-semibold text-xs transition-all disabled:opacity-30"
               >
                 {loading ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin text-[#050505]" />

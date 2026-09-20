@@ -107,11 +107,11 @@ class FileStorage:
         safe_name = sanitize_filename(filename)
         ext = os.path.splitext(safe_name)[1].lower()
 
-        # 1. Save original file
+        # 1. Save original file via storage provider
         storage_filename = f"{file_id}_{safe_name}"
-        storage_path = os.path.join(settings.FILES_DIR, storage_filename)
-        with open(storage_path, "wb") as f:
-            f.write(file_bytes)
+        from app.storage.provider import get_storage_provider
+        sp = get_storage_provider()
+        storage_path = sp.save_file(storage_filename, file_bytes)
 
         # 2. Save extracted text
         extracted_filename = f"{file_id}_extracted.txt"

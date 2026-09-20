@@ -64,7 +64,7 @@ export default function DashboardPage() {
       value: "Indexed",
       subtext: `${health?.workspace?.total_chunks || 0} chunks in Moss`,
       icon: Layers,
-      color: "text-[#D4AF37]",
+      color: "text-[#C9A45C]",
     },
     {
       label: "STORAGE",
@@ -78,17 +78,17 @@ export default function DashboardPage() {
       value: activeModel.split(":")[0] || "Qwen 2.5",
       subtext: activeModel.includes(":") ? activeModel.split(":")[1] : "0.5B",
       icon: Activity,
-      color: "text-[#F0C75E]",
+      color: "text-[#D8B46E]",
     },
   ];
 
   return (
     <div className="flex-1 flex flex-col max-w-5xl w-full mx-auto px-4 sm:px-8 py-8 sm:py-12 space-y-10">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-6 border-b border-[rgba(212,175,55,0.12)]">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-6 border-b border-[rgba(201,164,92,0.12)]">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-mono tracking-widest text-[#D4AF37] uppercase">
+            <span className="text-[11px] font-mono tracking-widest text-[#C9A45C] uppercase">
               SYSTEM
             </span>
             <span className="text-[#666660]">/</span>
@@ -107,7 +107,7 @@ export default function DashboardPage() {
         <button
           onClick={loadDashboard}
           disabled={loading}
-          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#0D0D0D] hover:bg-[#111111] border border-[rgba(212,175,55,0.12)] hover:border-[rgba(212,175,55,0.30)] text-xs text-[#A6A6A0] hover:text-[#F5F5F0] transition-all disabled:opacity-40 shrink-0"
+          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#0D0D0D] hover:bg-[#111111] border border-[rgba(201,164,92,0.12)] hover:border-[rgba(201,164,92,0.30)] text-xs text-[#A6A6A0] hover:text-[#F5F5F0] transition-all disabled:opacity-40 shrink-0"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
           <span>Refresh</span>
@@ -121,7 +121,7 @@ export default function DashboardPage() {
           return (
             <div
               key={i}
-              className="p-5 rounded-2xl bg-[#0D0D0D] border border-[rgba(212,175,55,0.12)] space-y-2 hover:border-[rgba(212,175,55,0.30)] transition-colors"
+              className="p-5 rounded-2xl bg-[#0D0D0D] border border-[rgba(201,164,92,0.12)] space-y-2 hover:border-[rgba(201,164,92,0.30)] transition-colors"
             >
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-mono tracking-widest text-[#666660] uppercase">
@@ -154,22 +154,22 @@ export default function DashboardPage() {
         </div>
 
         {events.length === 0 ? (
-          <div className="p-8 rounded-2xl border border-[rgba(212,175,55,0.12)] bg-[#0D0D0D] text-center">
+          <div className="p-8 rounded-2xl border border-[rgba(201,164,92,0.12)] bg-[#0D0D0D] text-center">
             <p className="text-xs text-[#A6A6A0]">
               No recent retrieval activity recorded yet.
             </p>
           </div>
         ) : (
-          <div className="rounded-2xl border border-[rgba(212,175,55,0.12)] bg-[#0D0D0D] overflow-hidden divide-y divide-[rgba(212,175,55,0.08)]">
+          <div className="rounded-2xl border border-[rgba(201,164,92,0.12)] bg-[#0D0D0D] overflow-hidden divide-y divide-[rgba(201,164,92,0.08)]">
             {events.map((ev, i) => (
               <div
                 key={ev.eventId || i}
                 className="flex items-center justify-between gap-4 p-4 hover:bg-[#111111] transition-colors text-xs"
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-7 h-7 rounded-lg bg-[#090909] border border-[rgba(212,175,55,0.12)] flex items-center justify-center shrink-0">
+                  <div className="w-7 h-7 rounded-lg bg-[#090909] border border-[rgba(201,164,92,0.12)] flex items-center justify-center shrink-0">
                     {ev.action === "retrieval" ? (
-                      <Search className="w-3.5 h-3.5 text-[#D4AF37]" />
+                      <Search className="w-3.5 h-3.5 text-[#C9A45C]" />
                     ) : (
                       <FileText className="w-3.5 h-3.5 text-[#32D583]" />
                     )}
@@ -201,7 +201,7 @@ export default function DashboardPage() {
         </span>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="p-4 rounded-xl bg-[#0D0D0D] border border-[rgba(212,175,55,0.12)] space-y-1">
+          <div className="p-4 rounded-xl bg-[#0D0D0D] border border-[rgba(201,164,92,0.12)] space-y-1">
             <span className="text-[10px] font-mono text-[#666660] uppercase">
               Retrieval Engine
             </span>
@@ -210,7 +210,7 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <div className="p-4 rounded-xl bg-[#0D0D0D] border border-[rgba(212,175,55,0.12)] space-y-1">
+          <div className="p-4 rounded-xl bg-[#0D0D0D] border border-[rgba(201,164,92,0.12)] space-y-1">
             <span className="text-[10px] font-mono text-[#666660] uppercase">
               Local Inference Host
             </span>
@@ -219,7 +219,7 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <div className="p-4 rounded-xl bg-[#0D0D0D] border border-[rgba(212,175,55,0.12)] space-y-1">
+          <div className="p-4 rounded-xl bg-[#0D0D0D] border border-[rgba(201,164,92,0.12)] space-y-1">
             <span className="text-[10px] font-mono text-[#666660] uppercase">
               Data Sovereignty
             </span>
@@ -228,7 +228,7 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <div className="p-4 rounded-xl bg-[#0D0D0D] border border-[rgba(212,175,55,0.12)] space-y-1">
+          <div className="p-4 rounded-xl bg-[#0D0D0D] border border-[rgba(201,164,92,0.12)] space-y-1">
             <span className="text-[10px] font-mono text-[#666660] uppercase">
               Storage Engine
             </span>
