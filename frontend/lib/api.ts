@@ -333,3 +333,307 @@ export async function testAiGeneration(prompt: string): Promise<any> {
   }
   return res.json();
 }
+
+/* ==========================================================================
+   VEIL STUDY SUITE (Gemini Cloud + Local Hybrid)
+   ========================================================================== */
+
+export interface PersonalizationOptions {
+  level?: "beginner" | "intermediate" | "advanced";
+  style?: "simple" | "detailed" | "exam-focused" | "technical" | "examples-first";
+  responseLength?: "short" | "balanced" | "detailed";
+}
+
+export interface SummaryResponse {
+  type: string;
+  filename: string;
+  summary: string;
+  timestamp: number;
+}
+
+export interface QuizQuestion {
+  id: number;
+  question: string;
+  options: {
+    A: string;
+    B: string;
+    C: string;
+    D: string;
+  };
+  correctAnswer: "A" | "B" | "C" | "D";
+  explanation: string;
+  reference?: string;
+}
+
+export interface QuizResponse {
+  title: string;
+  difficulty: string;
+  total: number;
+  questions: QuizQuestion[];
+  timestamp: number;
+}
+
+export interface QAItem {
+  id: number;
+  question: string;
+  answer: string;
+  category: string;
+  difficulty: string;
+  reference?: string;
+  keyPoints?: string[];
+}
+
+export interface QAResponse {
+  title: string;
+  category: string;
+  total: number;
+  items: QAItem[];
+  timestamp: number;
+}
+
+export interface Flashcard {
+  id: number;
+  front: string;
+  back: string;
+  category: string;
+  reference?: string;
+}
+
+export interface FlashcardsResponse {
+  title: string;
+  total: number;
+  cards: Flashcard[];
+  timestamp: number;
+}
+
+export interface StudyToolResponse {
+  tool: string;
+  result: string;
+  timestamp: number;
+}
+
+// In-memory client cache to eliminate duplicate Gemini API calls
+const studyCache = new Map<string, any>();
+
+export function clearStudyCache(fileId?: string) {
+  if (!fileId) {
+    studyCache.clear();
+  } else {
+    for (const key of Array.from(studyCache.keys())) {
+      if (key.startsWith(fileId)) {
+        studyCache.delete(key);
+      }
+    }
+  }
+}
+
+export function getPersonalizationSettings(): PersonalizationOptions {
+  if (typeof window === "undefined") return { level: "intermediate", style: "simple", responseLength: "balanced" };
+  try {
+    const saved = localStorage.getItem("veil_personalization");
+    if (saved) return JSON.parse(saved);
+  } catch {}
+  return { level: "intermediate", style: "simple", responseLength: "balanced" };
+}
+
+export function savePersonalizationSettings(options: PersonalizationOptions) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem("veil_personalization", JSON.stringify(options));
+  } catch {}
+}
+
+export async function fetchSummary(params: {
+  fileId: string;
+  content: string;
+  type?: "quick" | "detailed" | "chapter" | "key_points" | "terms" | "tldr";
+  filename?: string;
+  forceRefresh?: boolean;
+}): Promise<SummaryResponse> {
+  const cacheKey = `${params.fileId}_summary_${params.type || "quick"}`;
+  if (!params.forceRefresh && studyCache.has(cacheKey)) {
+    return studyCache.get(cacheKey);
+  }
+
+  const personalization = getPersonalizationSettings();
+  const res = await fetch(`${API_BASE}/api/study/summary`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      content: params.content,
+      type: params.type || "quick",
+      filename: params.filename || "Document",
+      personalization,
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await extractErrorMessage(res, "Failed to generate summary");
+    throw new Error(err);
+  }
+
+  const data = await res.json();
+  studyCache.set(cacheKey, data);
+  return data;
+}
+
+export async function generateQuiz(params: {
+  fileId: string;
+  content: string;
+  difficulty?: "easy" | "medium" | "hard";
+  count?: number;
+  filename?: string;
+  forceRefresh?: boolean;
+}): Promise<QuizResponse> {
+  const cacheKey = `${params.fileId}_quiz_${params.difficulty || "medium"}_${params.count || 5}`;
+  if (!params.forceRefresh && studyCache.has(cacheKey)) {
+    return studyCache.get(cacheKey);
+  }
+
+  const personalization = getPersonalizationSettings();
+  const res = await fetch(`${API_BASE}/api/study/quiz`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      content: params.content,
+      difficulty: params.difficulty || "medium",
+      count: params.count || 5,
+      filename: params.filename || "Document",
+      personalization,
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await extractErrorMessage(res, "Failed to generate quiz");
+    throw new Error(err);
+  }
+
+  const data = await res.json();
+  studyCache.set(cacheKey, data);
+  return data;
+}
+
+export async function generateQA(params: {
+  fileId: string;
+  content: string;
+  category?: "short" | "long" | "important" | "exam" | "conceptual" | "all";
+  filename?: string;
+  forceRefresh?: boolean;
+}): Promise<QAResponse> {
+  const cacheKey = `${params.fileId}_qa_${params.category || "all"}`;
+  if (!params.forceRefresh && studyCache.has(cacheKey)) {
+    return studyCache.get(cacheKey);
+  }
+
+  const personalization = getPersonalizationSettings();
+  const res = await fetch(`${API_BASE}/api/study/qa`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      content: params.content,
+      category: params.category || "all",
+      filename: params.filename || "Document",
+      personalization,
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await extractErrorMessage(res, "Failed to generate Q&A");
+    throw new Error(err);
+  }
+
+  const data = await res.json();
+  studyCache.set(cacheKey, data);
+  return data;
+}
+
+export async function generateFlashcards(params: {
+  fileId: string;
+  content: string;
+  count?: number;
+  filename?: string;
+  forceRefresh?: boolean;
+}): Promise<FlashcardsResponse> {
+  const cacheKey = `${params.fileId}_flashcards_${params.count || 10}`;
+  if (!params.forceRefresh && studyCache.has(cacheKey)) {
+    return studyCache.get(cacheKey);
+  }
+
+  const personalization = getPersonalizationSettings();
+  const res = await fetch(`${API_BASE}/api/study/flashcards`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      content: params.content,
+      count: params.count || 10,
+      filename: params.filename || "Document",
+      personalization,
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await extractErrorMessage(res, "Failed to generate flashcards");
+    throw new Error(err);
+  }
+
+  const data = await res.json();
+  studyCache.set(cacheKey, data);
+  return data;
+}
+
+export async function runStudyTool(params: {
+  tool: string;
+  content: string;
+  target?: string;
+  filename?: string;
+}): Promise<StudyToolResponse> {
+  const personalization = getPersonalizationSettings();
+  const res = await fetch(`${API_BASE}/api/study/tools`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      tool: params.tool,
+      content: params.content,
+      target: params.target || "",
+      filename: params.filename || "Document",
+      personalization,
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await extractErrorMessage(res, `Failed to run ${params.tool} tool`);
+    throw new Error(err);
+  }
+
+  return res.json();
+}
+
+export async function sendChatMessage(params: {
+  message: string;
+  documentContext?: string;
+}): Promise<{
+  answer: string;
+  sources: Array<{ snippet: string; page?: number }>;
+  provider: string;
+  model: string;
+  latencyMs: number;
+}> {
+  const personalization = getPersonalizationSettings();
+  const res = await fetch(`${API_BASE}/api/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      message: params.message,
+      documentContext: params.documentContext || "",
+      personalization,
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await extractErrorMessage(res, "Failed to send chat message");
+    throw new Error(err);
+  }
+
+  return res.json();
+}
+

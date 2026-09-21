@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@moss-dev/moss": "^1.7.1",
     "cheerio": "^1.2.0",
     "clsx": "^2.1.1",

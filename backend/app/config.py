@@ -32,8 +32,15 @@ class Settings(BaseSettings):
     MOSS_MODEL_ID: str = "moss-minilm"
 
     # LLM Provider Configuration
-    # Supported: OLLAMA_LOCAL, OLLAMA_CLOUD, API
-    LLM_PROVIDER: str = "OLLAMA_LOCAL"
+    # Supported: GEMINI, OLLAMA_LOCAL, OLLAMA_CLOUD, API
+    AI_PROVIDER: str = "GEMINI"
+    LLM_PROVIDER: str = "GEMINI"
+    
+    # Google Gemini Cloud Inference
+    GEMINI_API_KEY: str = ""
+    GEMINI_MODEL: str = "gemini-2.5-flash"
+
+    # Ollama Local Fallback
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OLLAMA_MODEL: str = "qwen2.5:0.5b"
     OLLAMA_API_KEY: str = ""
@@ -54,7 +61,7 @@ class Settings(BaseSettings):
 
     @property
     def LOCAL_AI_MODEL(self) -> str:
-        return self.OLLAMA_MODEL
+        return self.GEMINI_MODEL if (self.LLM_PROVIDER or "").upper() == "GEMINI" else self.OLLAMA_MODEL
 
 settings = Settings()
 

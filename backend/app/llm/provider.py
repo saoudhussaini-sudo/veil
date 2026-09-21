@@ -1,3 +1,4 @@
+import os
 import time
 import json
 import logging
@@ -512,15 +513,155 @@ class CloudAPIProvider(BaseLLMProvider):
             yield f"[API streaming error: {str(e)}]"
 
 
+class GeminiProvider(BaseLLMProvider):
+    """
+    Connects to Google Gemini Cloud REST API.
+    Provides fast, serverless-compatible inference with large context window.
+    """
+
+    def __init__(self):
+        self.api_key = settings.GEMINI_API_KEY or os.environ.get("GEMINI_API_KEY", "")
+        self.model = settings.GEMINI_MODEL or "gemini-2.5-flash"
+        self.base_url = "https://generativelanguage.googleapis.com/v1beta"
+        logger.info(f"GeminiProvider initialized: model={self.model}, configured={bool(self.api_key)}")
+
+    def set_model(self, model_name: str) -> str:
+        self.model = model_name.strip()
+        return self.model
+
+    async def get_available_models(self) -> List[str]:
+        return ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-1.5-pro"]
+
+    async def check_health(self) -> Dict[str, Any]:
+        return {
+            "connected": bool(self.api_key),
+            "provider": "GEMINI",
+            "model": self.model,
+            "available_models": await self.get_available_models(),
+            "configured": bool(self.api_key),
+            "base_url": self.base_url,
+        }
+
+    async def generate(
+        self, prompt: str, system: Optional[str] = None, temperature: float = 0.2
+    ) -> Tuple[str, float, str, str]:
+        if not self.api_key:
+            return (
+                "GEMINI_API_KEY is not configured. Please set GEMINI_API_KEY in your environment variables.",
+                0.0,
+                "GEMINI",
+                self.model
+            )
+
+        start = time.perf_counter()
+        sys_prompt = system or SYSTEM_PROMPT
+
+        payload = {
+            "system_instruction": {
+                "parts": [{"text": sys_prompt}]
+            },
+            "contents": [
+                {
+                    "role": "user",
+                    "parts": [{"text": prompt}]
+                }
+            ],
+            "generationConfig": {
+                "temperature": temperature
+            }
+        }
+
+        url = f"{self.base_url}/models/{self.model}:generateContent?key={self.api_key}"
+        try:
+            async with httpx.AsyncClient(timeout=45.0) as client:
+                res = await client.post(url, json=payload)
+                elapsed_ms = round((time.perf_counter() - start) * 1000, 2)
+                if res.status_code == 200:
+                    data = res.json()
+                    candidates = data.get("candidates", [])
+                    if candidates and "content" in candidates[0]:
+                        parts = candidates[0]["content"].get("parts", [])
+                        answer = "".join(p.get("text", "") for p in parts).strip()
+                        return answer, elapsed_ms, "GEMINI", self.model
+                    return "No response text received from Gemini.", elapsed_ms, "GEMINI", self.model
+                else:
+                    raise RuntimeError(f"Gemini API returned HTTP {res.status_code}: {res.text}")
+        except Exception as e:
+            raise RuntimeError(f"Gemini API generation failed: {str(e)}")
+
+    async def chat(
+        self, messages: List[Dict[str, str]], temperature: float = 0.2
+    ) -> Tuple[str, float, str, str]:
+        if not self.api_key:
+            return (
+                "GEMINI_API_KEY is not configured. Please set GEMINI_API_KEY in your environment variables.",
+                0.0,
+                "GEMINI",
+                self.model
+            )
+
+        start = time.perf_counter()
+        contents = []
+        for m in messages:
+            role = "model" if m.get("role") in ["assistant", "model"] else "user"
+            contents.append({
+                "role": role,
+                "parts": [{"text": m.get("content", "")}]
+            })
+
+        payload = {
+            "system_instruction": {
+                "parts": [{"text": SYSTEM_PROMPT}]
+            },
+            "contents": contents,
+            "generationConfig": {
+                "temperature": temperature
+            }
+        }
+
+        url = f"{self.base_url}/models/{self.model}:generateContent?key={self.api_key}"
+        try:
+            async with httpx.AsyncClient(timeout=45.0) as client:
+                res = await client.post(url, json=payload)
+                elapsed_ms = round((time.perf_counter() - start) * 1000, 2)
+                if res.status_code == 200:
+                    data = res.json()
+                    candidates = data.get("candidates", [])
+                    if candidates and "content" in candidates[0]:
+                        parts = candidates[0]["content"].get("parts", [])
+                        answer = "".join(p.get("text", "") for p in parts).strip()
+                        return answer, elapsed_ms, "GEMINI", self.model
+                    return "No response text received from Gemini.", elapsed_ms, "GEMINI", self.model
+                else:
+                    raise RuntimeError(f"Gemini chat API returned HTTP {res.status_code}: {res.text}")
+        except Exception as e:
+            raise RuntimeError(f"Gemini chat failed: {str(e)}")
+
+    async def stream_generate(
+        self, prompt: str, system: Optional[str] = None, temperature: float = 0.2
+    ) -> AsyncGenerator[str, None]:
+        # For stream generate, call generate and yield
+        answer, _, _, _ = await self.generate(prompt, system=system, temperature=temperature)
+        yield answer
+
+
 def get_llm_provider() -> BaseLLMProvider:
-    """Factory function returning the active LLM provider based on LLM_PROVIDER setting."""
-    prov = (settings.LLM_PROVIDER or "OLLAMA_LOCAL").upper().strip()
-    if prov in ["OLLAMA_LOCAL", "OLLAMA", "LOCAL"]:
+    """Factory function returning active LLM provider based on AI_PROVIDER or LLM_PROVIDER setting."""
+    prov = (getattr(settings, "AI_PROVIDER", None) or settings.LLM_PROVIDER or "GEMINI").upper().strip()
+    if prov in ["GEMINI", "GOOGLE", "GOOGLE_GEMINI"]:
+        # If GEMINI is configured or requested, return GeminiProvider
+        api_key = settings.GEMINI_API_KEY or os.environ.get("GEMINI_API_KEY", "")
+        if api_key:
+            return GeminiProvider()
+        # Fallback gracefully to Ollama if no API key is set in local dev
+        logger.info("GEMINI_API_KEY not set; falling back to OllamaLocalProvider for local development.")
+        return OllamaLocalProvider()
+    elif prov in ["OLLAMA_LOCAL", "OLLAMA", "LOCAL"]:
         return OllamaLocalProvider()
     elif prov in ["OLLAMA_CLOUD", "CLOUD_OLLAMA", "REMOTE_OLLAMA"]:
         return OllamaCloudProvider()
-    elif prov in ["API", "CLOUD", "GROQ", "GEMINI", "OPENAI"]:
+    elif prov in ["API", "CLOUD", "GROQ", "OPENAI"]:
         return CloudAPIProvider()
     else:
-        logger.warning(f"Unrecognized LLM_PROVIDER '{prov}'. Defaulting to OLLAMA_LOCAL.")
-        return OllamaLocalProvider()
+        logger.warning(f"Unrecognized provider '{prov}'. Defaulting to GeminiProvider.")
+        return GeminiProvider()
