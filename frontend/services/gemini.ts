@@ -10,8 +10,8 @@ export function isGeminiConfigured(): boolean {
   return getGeminiApiKey().length > 0;
 }
 
-export const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-export const FALLBACK_GEMINI_MODEL = "gemini-1.5-flash";
+export const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-flash-latest";
+export const FALLBACK_GEMINI_MODEL = "gemini-flash-lite-latest";
 
 export interface PersonalizationOptions {
   level?: "beginner" | "intermediate" | "advanced";
@@ -80,7 +80,7 @@ export function buildPersonalizationPrompt(options?: PersonalizationOptions): st
  * Execute Gemini model with retry on rate limit (429) or transient errors
  */
 async function callWithRetry<T>(fn: (modelName: string) => Promise<T>): Promise<T> {
-  const models = [DEFAULT_GEMINI_MODEL, FALLBACK_GEMINI_MODEL, "gemini-1.5-pro"];
+  const models = [DEFAULT_GEMINI_MODEL, "gemini-flash-latest", "gemini-flash-lite-latest", "gemini-3.6-flash", "gemini-pro-latest"];
   let lastError: any = null;
 
   for (const modelName of models) {
@@ -95,8 +95,18 @@ async function callWithRetry<T>(fn: (modelName: string) => Promise<T>): Promise<
         const msg = err?.message || String(err);
         const status = err?.status || err?.statusCode;
 
-        // If rate limited or quota exceeded, backoff and retry or try fallback model
-        if (status === 429 || msg.includes("429") || msg.includes("Quota") || msg.includes("ResourceExhausted")) {
+        // If rate limited, overloaded, or service unavailable, backoff and retry or try fallback model
+        if (
+          status === 429 ||
+          status === 503 ||
+          msg.includes("429") ||
+          msg.includes("503") ||
+          msg.includes("Quota") ||
+          msg.includes("ResourceExhausted") ||
+          msg.includes("high demand") ||
+          msg.includes("Service Unavailable") ||
+          msg.includes("Overloaded")
+        ) {
           if (retries > 0) {
             await new Promise((r) => setTimeout(r, delay));
             delay *= 2;
