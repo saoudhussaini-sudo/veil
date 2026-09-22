@@ -44,11 +44,15 @@ async def execute_query(req: QueryRequest):
         err_msg = str(e)
         if "Gemini API key is not configured" in err_msg:
             raise HTTPException(status_code=400, detail="Gemini API key is not configured.")
-        elif "Gemini is currently unavailable" in err_msg:
-            raise HTTPException(status_code=503, detail="Gemini is currently unavailable.")
-        elif "Local file search is unavailable" in err_msg:
-            raise HTTPException(status_code=503, detail="Local file search is unavailable. Please check the MOSS connection.")
-        raise HTTPException(status_code=500, detail=f"Query error: {err_msg}")
+        return QueryResponse(
+            answer=f"Notice: Query processing was interrupted ({err_msg}). Please retry.",
+            routing={"mode": req.mode or "AUTO"},
+            sources=[],
+            moss={"used": False, "passages": 0, "latencyMs": 0.0},
+            localAI={"used": False, "provider": settings.LLM_PROVIDER, "model": settings.GEMINI_MODEL, "latencyMs": 0.0},
+            accessedFiles=[],
+            query_id=""
+        )
 
 @router.post("/query/stream")
 async def execute_query_stream(req: QueryRequest):

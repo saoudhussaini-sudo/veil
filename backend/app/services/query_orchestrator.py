@@ -58,6 +58,24 @@ class QueryOrchestrator:
         ]
         return any(q == p or q.startswith(p) or f" {p}" in q for p in meta_phrases)
 
+    def _synthesize_from_chunks(self, question: str, chunks: List[Dict[str, Any]]) -> str:
+        """Fallback grounded summary directly from retrieved MOSS chunks when Gemini is temporarily unavailable."""
+        if not chunks:
+            return "No relevant local files were found."
+
+        lines = [
+            "Notice: Google Gemini AI service is momentarily experiencing high demand. VEIL retrieved the following relevant passages directly from your local documents:\n"
+        ]
+        for i, c in enumerate(chunks[:3], 1):
+            meta = c.get("metadata", {})
+            fname = meta.get("filename") or c.get("file_name") or f"Document {i}"
+            text = (c.get("text") or c.get("snippet") or "").strip()
+            if len(text) > 400:
+                text = text[:400] + "..."
+            lines.append(f"### Passages from {fname}:\n> {text}\n")
+        lines.append("*(Sources are cited below. You can query again in a moment to obtain a full AI synthesis.)*")
+        return "\n".join(lines)
+
     async def _safe_generate(self, prompt: str, system: Optional[str] = None) -> Tuple[str, float, str, str]:
         """Safely executes generation with standardized error handling."""
         try:
@@ -75,17 +93,22 @@ class QueryOrchestrator:
 
     async def _safe_reason(self, question: str, context_chunks: List[Dict[str, Any]], mode: str = "RETRIEVAL") -> Tuple[str, float, str, str]:
         """Safely executes context reasoning with standardized error handling."""
+        provider = getattr(local_ai_service, "provider", settings.LLM_PROVIDER)
+        model = getattr(local_ai_service, "model", settings.GEMINI_MODEL)
         try:
-            return await local_ai_service.reason_with_context(question=question, context_chunks=context_chunks, mode=mode)
+            ans, lat, p, m = await local_ai_service.reason_with_context(question=question, context_chunks=context_chunks, mode=mode)
+            if ans and not ans.startswith("Gemini is currently unavailable"):
+                return ans, lat, p, m
+            if context_chunks:
+                return self._synthesize_from_chunks(question, context_chunks), lat, p, m
+            return ans, lat, p, m
         except Exception as e:
             logger.error(f"Gemini reasoning call failed: {e}", exc_info=True)
-            provider = getattr(local_ai_service, "provider", settings.LLM_PROVIDER)
-            model = getattr(local_ai_service, "model", settings.GEMINI_MODEL)
             err_str = str(e)
             if "Gemini API key is not configured" in err_str or "key is not configured" in err_str:
                 return "Gemini API key is not configured.", 0.0, provider, model
-            elif "Gemini is currently unavailable" in err_str or "unavailable" in err_str:
-                return "Gemini is currently unavailable.", 0.0, provider, model
+            if context_chunks:
+                return self._synthesize_from_chunks(question, context_chunks), 0.0, provider, model
             return "Gemini is currently unavailable.", 0.0, provider, model
 
     async def execute_query(

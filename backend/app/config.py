@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     # Primary AI Inference Engine: Google Gemini API
     LLM_PROVIDER: str = "GEMINI"
     GEMINI_API_KEY: str = ""
-    GEMINI_MODEL: str = "gemini-3.5-flash"
+    GEMINI_MODEL: str = "gemini-3.6-flash"
 
     # Optional Generic Cloud LLM (OpenAI-compatible)
     LLM_API_KEY: str = ""
@@ -43,7 +43,7 @@ class Settings(BaseSettings):
 
     # Inference Limits & Resilience
     LLM_MAX_TOKENS: int = 1024
-    LLM_TIMEOUT: float = 60.0
+    LLM_TIMEOUT: float = 12.0
 
     # Aliases for backward compatibility
     @property

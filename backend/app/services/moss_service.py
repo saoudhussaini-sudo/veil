@@ -242,7 +242,7 @@ class MossService:
             return [], elapsed_ms
 
         # STEP 1: Attempt official MOSS retrieval
-        if self.connected and self.client:
+        if self.connected and self.client and (target_index in self.loaded_indexes):
             try:
                 options = moss.QueryOptions(top_k=top_k * 3, alpha=0.5)
                 res = await self.client.query(target_index, q_clean, options=options)
