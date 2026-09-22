@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     # Primary AI Inference Engine: Google Gemini API
     LLM_PROVIDER: str = "GEMINI"
     GEMINI_API_KEY: str = ""
-    GEMINI_MODEL: str = "gemini-3-flash-preview"
+    GEMINI_MODEL: str = "gemini-3.5-flash"
 
     # Optional Generic Cloud LLM (OpenAI-compatible)
     LLM_API_KEY: str = ""
