@@ -38,8 +38,8 @@ def init_database():
         moss_used INTEGER DEFAULT 0,
         moss_passages INTEGER DEFAULT 0,
         moss_latency_ms REAL,
-        ai_provider TEXT DEFAULT 'ollama',
-        ai_model TEXT DEFAULT 'llama3',
+        ai_provider TEXT DEFAULT 'gemini',
+        ai_model TEXT DEFAULT 'gemini-1.5-flash',
         ai_latency_ms REAL DEFAULT 0.0,
         sources_json TEXT,
         created_at REAL NOT NULL,
@@ -83,12 +83,12 @@ def init_database():
         pass
 
     try:
-        cursor.execute("ALTER TABLE queries ADD COLUMN ai_provider TEXT DEFAULT 'ollama'")
+        cursor.execute("ALTER TABLE queries ADD COLUMN ai_provider TEXT DEFAULT 'gemini'")
     except Exception:
         pass
 
     try:
-        cursor.execute("ALTER TABLE queries ADD COLUMN ai_model TEXT DEFAULT 'llama3'")
+        cursor.execute("ALTER TABLE queries ADD COLUMN ai_model TEXT DEFAULT 'gemini-1.5-flash'")
     except Exception:
         pass
 

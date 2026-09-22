@@ -19,6 +19,7 @@ class SourceItem(BaseModel):
     title: str
     file_id: Optional[str] = None
     file_name: Optional[str] = None
+    path: Optional[str] = None
     score: float = 1.0
     snippet: str
     chunk_index: Optional[int] = None
@@ -31,8 +32,8 @@ class MossInfo(BaseModel):
 
 class LocalAIInfo(BaseModel):
     used: bool = True
-    provider: str = "ollama"
-    model: str = "llama3"
+    provider: str = "GEMINI"
+    model: str = "gemini-1.5-flash"
     latencyMs: float = 0.0
 
 class RoutingInfo(BaseModel):

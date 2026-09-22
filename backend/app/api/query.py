@@ -16,6 +16,9 @@ from app.services.local_ai_service import local_ai_service
 from app.storage.database import get_recent_queries, get_document
 from app.config import settings
 import os
+import logging
+
+logger = logging.getLogger("veil.api.query")
 
 router = APIRouter(prefix="/api", tags=["Intelligent Query"])
 
@@ -24,6 +27,7 @@ async def execute_query(req: QueryRequest):
     if not req.question or not req.question.strip():
         raise HTTPException(status_code=400, detail="Please provide a valid question.")
 
+    logger.info(f"[QUERY] Request received. Mode: {req.mode}, TopK: {req.top_k}, Prompt: '{req.question[:60]}...'")
     try:
         res = await query_orchestrator.execute_query(
             question=req.question,
@@ -31,13 +35,24 @@ async def execute_query(req: QueryRequest):
             top_k=req.top_k or 4,
             file_ids=req.file_ids
         )
+        logger.info(f"[QUERY] Completed successfully. Route: {res.routing.mode}, AI latency: {res.localAI.latencyMs}ms")
         return res
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"VEIL query error: {str(e)}")
+        logger.error(f"[QUERY] Execution error: {e}", exc_info=True)
+        err_msg = str(e)
+        if "Gemini API key is not configured" in err_msg:
+            raise HTTPException(status_code=400, detail="Gemini API key is not configured.")
+        elif "Gemini is currently unavailable" in err_msg:
+            raise HTTPException(status_code=503, detail="Gemini is currently unavailable.")
+        elif "Local file search is unavailable" in err_msg:
+            raise HTTPException(status_code=503, detail="Local file search is unavailable. Please check the MOSS connection.")
+        raise HTTPException(status_code=500, detail=f"Query error: {err_msg}")
 
 @router.post("/query/stream")
 async def execute_query_stream(req: QueryRequest):
-    """Streams the response tokens in real-time from Ollama."""
+    """Streams response tokens in real-time."""
     if not req.question or not req.question.strip():
         raise HTTPException(status_code=400, detail="Please provide a valid question.")
 

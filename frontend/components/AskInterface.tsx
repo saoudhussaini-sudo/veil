@@ -35,7 +35,7 @@ export default function AskInterface() {
 
   // Model selection
   const [models, setModels] = useState<string[]>([]);
-  const [activeModel, setActiveModel] = useState<string>("qwen2.5:0.5b");
+  const [activeModel, setActiveModel] = useState<string>("gemini-1.5-flash");
   const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
 
   // Health / Status
@@ -269,9 +269,9 @@ export default function AskInterface() {
               <div className="flex items-start gap-3">
                 <span className="w-2.5 h-2.5 rounded-full bg-[#32D583] shadow-[0_0_8px_rgba(50,213,131,0.5)] shrink-0 mt-1" />
                 <div>
-                  <p className="text-sm font-semibold text-[#F5F9FC]">Local AI</p>
+                  <p className="text-sm font-semibold text-[#F5F9FC]">AI Engine</p>
                   <p className="text-xs text-[#94A3B8] font-mono">
-                    Ollama &middot; {activeModel}
+                    Gemini &middot; {activeModel}
                   </p>
                 </div>
               </div>

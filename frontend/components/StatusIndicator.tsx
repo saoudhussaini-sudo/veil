@@ -34,7 +34,7 @@ export default function StatusIndicator() {
       <div className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#080D12] border border-[#17232D]">
         <Cpu className="w-3 h-3 text-[#22B8FF]" />
         <span className="text-[#64748B]">AI:</span>
-        <span className="text-[#F5F9FC] font-medium">{health?.local_ai?.model || "qwen2.5:0.5b"}</span>
+        <span className="text-[#F5F9FC] font-medium">{health?.gemini?.model || health?.local_ai?.model || "gemini-1.5-flash"}</span>
       </div>
     </div>
   );

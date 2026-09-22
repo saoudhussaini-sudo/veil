@@ -73,8 +73,8 @@ export default function PrivacySection() {
               Decoupled Inference Layer
             </h3>
             <p className="text-sm text-[#94A3B8] leading-relaxed">
-              You choose the inference model: Ollama, local instruct models, or offline
-              synthesizers. Everything runs locally on device with real audit trails.
+              Decoupled reasoning via Google Gemini with local retrieval via MOSS.
+              Never exposes entire drives or unrequested documents.
             </p>
           </div>
         </div>

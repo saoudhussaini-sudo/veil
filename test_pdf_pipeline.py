@@ -136,7 +136,7 @@ def run_pipeline_test():
     ans_lower = query_res["answer"].lower()
     assert "page 7" in ans_lower or "local retrieval" in ans_lower or "moss" in ans_lower or "in-process" in ans_lower, \
         "Answer must be grounded in page 7 text!"
-    print(" >>> STEP 5 (PDF RETRIEVAL + OLLAMA) VERIFIED!")
+    print(" >>> STEP 5 (PDF RETRIEVAL + GEMINI) VERIFIED!")
 
     # 6. Test General AI without Moss (PART 22)
     print("\n[STEP 6] Testing General AI query (No Moss): 'What is React?'")

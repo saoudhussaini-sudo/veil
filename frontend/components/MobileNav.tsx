@@ -158,7 +158,7 @@ export default function MobileNav() {
                   </span>
                 </div>
                 <p className="text-[10px] text-[#666660]">
-                  Moss retrieval & on-device Ollama.
+                  MOSS local retrieval & Gemini API.
                 </p>
               </div>
             </div>

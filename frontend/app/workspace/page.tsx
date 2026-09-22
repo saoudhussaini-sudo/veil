@@ -12,16 +12,9 @@ import {
   Shield,
   Layers,
   CheckCircle2,
-  AlertCircle,
+  Folder,
 } from "lucide-react";
-import {
-  runQuery,
-  sendChatMessage,
-  fetchFiles,
-  fetchFilePreview,
-  QueryResponse,
-  FileItem,
-} from "@/lib/api";
+import { runQuery, fetchHealth, QueryResponse, SourceItem, HealthResponse } from "@/lib/api";
 
 export default function WorkspacePage() {
   const [question, setQuestion] = useState("");
@@ -30,56 +23,15 @@ export default function WorkspacePage() {
   const [response, setResponse] = useState<QueryResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [expandedSources, setExpandedSources] = useState(false);
-  const [files, setFiles] = useState<FileItem[]>([]);
-  const [selectedFileId, setSelectedFileId] = useState<string>("all");
-  const [activeDocContext, setActiveDocContext] = useState<string>("");
+  const [health, setHealth] = useState<HealthResponse | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Load available files for document context grounding
-  useEffect(() => {
-    fetchFiles()
-      .then((res) => {
-        setFiles(res.files || []);
-        if (res.files && res.files.length > 0) {
-          // Pre-select first document for immediate study utility
-          setSelectedFileId(res.files[0].id);
-          fetchFilePreview(res.files[0].id)
-            .then((p) => setActiveDocContext(p.extracted_text_preview || ""))
-            .catch(() => {});
-        }
-      })
-      .catch(() => {});
-  }, []);
-
-  const handleDocumentChange = async (fileId: string) => {
-    setSelectedFileId(fileId);
-    if (fileId === "all") {
-      setActiveDocContext("");
-    } else {
-      try {
-        const preview = await fetchFilePreview(fileId);
-        setActiveDocContext(preview.extracted_text_preview || "");
-      } catch {
-        setActiveDocContext("");
-      }
-    }
-  };
-
-  const selectedFile = files.find((f) => f.id === selectedFileId);
-
-  const dynamicPills = selectedFile
-    ? [
-        `What are the core findings of ${selectedFile.original_name || selectedFile.filename}?`,
-        "Explain the key concepts like I'm a beginner",
-        "What are the most important formulas or rules mentioned?",
-        "Extract 5 critical exam questions from this document",
-      ]
-    : [
-        "Summarize my uploaded study materials",
-        "What does my research say about quantum computing?",
-        "Explain the transformer attention mechanism",
-        "Compare classical and quantum information states",
-      ];
+  const examplePills = [
+    "Find my DBMS notes",
+    "Find my Java OOP notes and summarize inheritance",
+    "What does my research say about local retrieval?",
+    "Summarize my documents",
+  ];
 
   const sourceControls = [
     { id: "AUTO", label: "AUTO" },
@@ -87,6 +39,12 @@ export default function WorkspacePage() {
     { id: "LOCAL", label: "LOCAL" },
     { id: "WEB", label: "WEB (AIR-GAPPED)", disabled: true },
   ];
+
+  useEffect(() => {
+    fetchHealth()
+      .then(setHealth)
+      .catch(() => null);
+  }, []);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -106,42 +64,10 @@ export default function WorkspacePage() {
     setLoading(true);
     setError(null);
     try {
-      if (activeDocContext) {
-        // Use precision contextual chat with strict anti-hallucination
-        const chatRes = await sendChatMessage({
-          message: q.trim(),
-          documentContext: activeDocContext,
-        });
-
-        setResponse({
-          answer: chatRes.answer,
-          routing: { mode: "DOCUMENT_GROUNDED" },
-          sources: chatRes.sources.map((s) => ({
-            title: selectedFile?.original_name || "Active Document",
-            score: 0.98,
-            snippet: s.snippet,
-            page: s.page,
-          })),
-          moss: { used: false, passages: 0 },
-          localAI: {
-            used: true,
-            provider: chatRes.provider,
-            model: chatRes.model,
-            latencyMs: chatRes.latencyMs,
-          },
-          accessedFiles: selectedFile
-            ? [{ fileId: selectedFile.id, filename: selectedFile.original_name, action: "GROUNDED_QUERY" }]
-            : [],
-        });
-      } else {
-        const res = await runQuery(
-          q.trim(),
-          mode === "WEB" ? "AUTO" : mode,
-          4,
-          selectedFileId !== "all" ? [selectedFileId] : undefined
-        );
-        setResponse(res);
-      }
+      const res = await runQuery(q.trim(), mode === "WEB" ? "AUTO" : mode);
+      setResponse(res);
+      // Refresh health for latest timings
+      fetchHealth().then(setHealth).catch(() => null);
     } catch (err: any) {
       console.error("Query failed:", err);
       setError(err.message || "Failed to execute query.");
@@ -177,48 +103,106 @@ export default function WorkspacePage() {
             WORKSPACE
           </span>
         </div>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#F5F5F0]">
-            Ask anything about your documents.
-          </h1>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#F5F5F0]">
+          Search & reasoning over your local files.
+        </h1>
+      </div>
 
-          {/* Active Document Selector Pill */}
-          {files.length > 0 && (
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-mono uppercase text-[#666660] shrink-0">Focus:</span>
-              <select
-                value={selectedFileId}
-                onChange={(e) => handleDocumentChange(e.target.value)}
-                className="bg-[#0D0D0D] border border-[rgba(201,164,92,0.2)] hover:border-[rgba(201,164,92,0.4)] text-xs text-[#C9A45C] font-mono rounded-xl px-3 py-1.5 focus:outline-none max-w-xs truncate"
-              >
-                <option value="all">All Documents</option>
-                {files.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {f.original_name || f.filename}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+      {/* Developer / Debug Status Panel (Section 11) */}
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-2 px-3.5 py-2 rounded-xl bg-[#090909] border border-[rgba(201,164,92,0.15)] text-[11px] font-mono text-[#A6A6A0]">
+        <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[#666660]">Gemini:</span>
+            <span
+              className={
+                health === null
+                  ? "text-[#A6A6A0] font-medium"
+                  : health?.gemini?.connected
+                  ? "text-[#32D583] font-medium"
+                  : health?.gemini?.configured
+                  ? "text-[#C9A45C] font-medium"
+                  : "text-[#E6A23C] font-medium"
+              }
+            >
+              {health === null
+                ? "Connecting..."
+                : health?.gemini?.connected
+                ? "Connected"
+                : health?.gemini?.configured
+                ? "Configured"
+                : "Key Not Configured"}
+            </span>
+          </div>
+          <span className="text-[#666660]">·</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[#666660]">MOSS:</span>
+            <span
+              className={
+                health === null
+                  ? "text-[#A6A6A0] font-medium"
+                  : health?.moss?.engine === "OFFICIAL MOSS"
+                  ? "text-[#32D583] font-medium"
+                  : health?.moss?.connected
+                  ? "text-[#32D583] font-medium"
+                  : health?.moss?.engine === "MOSS: FALLBACK"
+                  ? "text-[#E6A23C] font-medium"
+                  : "text-[#FF5C67] font-medium"
+              }
+            >
+              {health === null
+                ? "Connecting..."
+                : health?.moss?.engine === "OFFICIAL MOSS"
+                ? "Connected (Official)"
+                : health?.moss?.connected
+                ? "Connected"
+                : health?.moss?.engine === "MOSS: FALLBACK"
+                ? "Fallback"
+                : "Disconnected"}
+            </span>
+          </div>
         </div>
+
+        {response ? (
+          <div className="flex items-center gap-2.5">
+            {response.moss?.latencyMs !== undefined && response.moss?.latencyMs !== null && (
+              <>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[#666660]">Retrieval:</span>
+                  <span className="text-[#C9A45C] font-semibold">
+                    {response.moss.latencyMs.toFixed(1)}ms
+                  </span>
+                </div>
+                <span className="text-[#666660]">·</span>
+              </>
+            )}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[#666660]">Results:</span>
+              <span className="text-[#F5F5F0] font-semibold">
+                {response.sources?.length || 0} files
+              </span>
+            </div>
+            {response.localAI?.used && (response.localAI?.latencyMs || 0) > 0 ? (
+              <>
+                <span className="text-[#666660]">·</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[#666660]">AI Time:</span>
+                  <span className="text-[#C9A45C] font-semibold">
+                    {((response.localAI.latencyMs) / 1000).toFixed(2)}s
+                  </span>
+                </div>
+              </>
+            ) : null}
+          </div>
+        ) : (
+          <div className="text-[10px] text-[#666660]">
+            {health?.moss?.engine === "OFFICIAL MOSS" ? "Official MOSS Sub-10ms Index Active" : "MOSS Sub-10ms Local Index Active"}
+          </div>
+        )}
       </div>
 
       {/* Main Intelligence Interaction Container */}
       {!response ? (
-        <div className="flex-1 flex flex-col justify-center space-y-6 my-auto py-6">
-          {/* Active Grounding Indicator */}
-          <div className="flex items-center justify-between px-1 text-[11px] font-mono">
-            <div className="flex items-center gap-2 text-[#32D583]">
-              <Shield className="w-3.5 h-3.5" />
-              <span>Anti-Hallucination Guardrail Active</span>
-            </div>
-            {selectedFile && (
-              <span className="text-[#666660] truncate max-w-xs">
-                Context: {selectedFile.original_name}
-              </span>
-            )}
-          </div>
-
+        <div className="flex-1 flex flex-col justify-center space-y-8 my-auto py-4">
           {/* Large Minimal Input Box */}
           <div className="rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[#090909] focus-within:border-[#C9A45C]/60 focus-within:shadow-[0_0_24px_rgba(201,164,92,0.08)] transition-all p-4 space-y-4">
             <textarea
@@ -227,11 +211,7 @@ export default function WorkspacePage() {
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={
-                selectedFile
-                  ? `Ask questions grounded specifically in ${selectedFile.original_name}...`
-                  : "Ask VEIL anything about your knowledge..."
-              }
+              placeholder="Search local files or ask VEIL anything (e.g. 'Find my DBMS notes')..."
               disabled={loading}
               className="w-full bg-transparent text-[#F5F5F0] placeholder-[#666660] text-base sm:text-lg resize-none focus:outline-none leading-relaxed"
             />
@@ -272,11 +252,11 @@ export default function WorkspacePage() {
                 {loading ? (
                   <>
                     <Loader2 className="w-3.5 h-3.5 animate-spin text-[#050505]" />
-                    <span>Reasoning...</span>
+                    <span>Retrieving & Reasoning...</span>
                   </>
                 ) : (
                   <>
-                    <span>Ask</span>
+                    <span>Search</span>
                     <ArrowRight className="w-3.5 h-3.5 text-[#050505]" />
                   </>
                 )}
@@ -287,10 +267,10 @@ export default function WorkspacePage() {
           {/* Example Question Pills */}
           <div className="space-y-3">
             <span className="text-[10px] font-mono tracking-widest text-[#666660] uppercase block">
-              Suggested contextual queries
+              Suggested queries
             </span>
             <div className="flex flex-wrap gap-2">
-              {dynamicPills.map((pill) => (
+              {examplePills.map((pill) => (
                 <button
                   key={pill}
                   onClick={() => {
@@ -307,7 +287,7 @@ export default function WorkspacePage() {
 
           {error && (
             <div className="p-4 rounded-xl bg-[#FF5C67]/10 border border-[#FF5C67]/30 text-xs text-[#FF5C67] flex items-center gap-3">
-              <span className="font-semibold">Error:</span>
+              <span className="font-semibold">Notice:</span>
               <span>{error}</span>
             </div>
           )}
@@ -321,14 +301,14 @@ export default function WorkspacePage() {
               <span className="text-[10px] font-mono uppercase tracking-widest text-[#666660]">
                 Query
               </span>
-              <p className="text-xl font-medium text-[#F5F5F0]">
+              <p className="text-base sm:text-lg font-medium text-[#F5F5F0]">
                 {question}
               </p>
             </div>
 
             <button
               onClick={resetQuery}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0D0D0D] hover:bg-[#141414] border border-[#1A1A1A] hover:border-[rgba(201,164,92,0.3)] text-xs font-medium text-[#A6A6A0] hover:text-[#F5F5F0] transition-all shrink-0"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[rgba(201,164,92,0.2)] hover:border-[rgba(201,164,92,0.4)] text-xs text-[#C9A45C] hover:text-[#D8B46E] transition-all shrink-0 font-mono"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>New query</span>
@@ -341,7 +321,7 @@ export default function WorkspacePage() {
               <span>ROUTE</span>
               <span className="text-[#A6A6A0]">·</span>
               <span className="text-[#C9A45C] font-semibold">
-                {response.routing?.mode || "DIRECT"}
+                {response.routing?.mode || "RETRIEVAL"}
               </span>
             </div>
 
@@ -349,23 +329,37 @@ export default function WorkspacePage() {
               <span>MODEL</span>
               <span className="text-[#A6A6A0]">·</span>
               <span className="text-[#F5F5F0]">
-                {response.localAI?.model || "Gemini 2.5 Flash"}
+                {response.localAI?.used && (response.localAI?.latencyMs || 0) > 0
+                  ? response.localAI?.model || "gemini-3-flash-preview"
+                  : response.answer?.includes("not configured")
+                  ? "Gemini: Key Not Configured"
+                  : response.answer?.includes("unavailable")
+                  ? "Gemini error"
+                  : response.answer?.includes("No relevant local files")
+                  ? "Bypassed (0 results)"
+                  : "Gemini configured / waiting"}
               </span>
             </div>
 
             <div className="flex items-center gap-1.5">
-              <span>LATENCY</span>
+              <span>AI TIME</span>
               <span className="text-[#A6A6A0]">·</span>
               <span className="text-[#F5F5F0]">
-                {((response.localAI?.latencyMs || 0) / 1000).toFixed(2)}s
+                {response.localAI?.used && (response.localAI?.latencyMs || 0) > 0
+                  ? `${((response.localAI?.latencyMs || 0) / 1000).toFixed(2)}s`
+                  : "—"}
               </span>
             </div>
 
-            <div className="flex items-center gap-1.5">
-              <span>GROUNDING</span>
-              <span className="text-[#A6A6A0]">·</span>
-              <span className="text-[#32D583]">VERIFIED</span>
-            </div>
+            {response.moss?.used && (
+              <div className="flex items-center gap-1.5">
+                <span>MOSS RETRIEVAL</span>
+                <span className="text-[#A6A6A0]">·</span>
+                <span className="text-[#32D583]">
+                  {response.moss.passages} passages ({response.moss.latencyMs?.toFixed(1) || 0}ms)
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Answer in Clean Document Reading Layout */}
@@ -377,7 +371,7 @@ export default function WorkspacePage() {
             ))}
           </article>
 
-          {/* Grounded Sources Section */}
+          {/* Grounded Sources Section with Windows Paths */}
           {response.sources && response.sources.length > 0 && (
             <div className="pt-6 border-t border-[#1A1A1A] space-y-3">
               <button
@@ -402,21 +396,35 @@ export default function WorkspacePage() {
                   {response.sources.map((src, i) => (
                     <div
                       key={i}
-                      className="p-3.5 rounded-xl bg-[#0D0D0D] border border-[rgba(201,164,92,0.12)] hover:border-[rgba(201,164,92,0.30)] transition-colors space-y-1.5"
+                      className="p-3.5 rounded-xl bg-[#0D0D0D] border border-[rgba(201,164,92,0.12)] hover:border-[rgba(201,164,92,0.30)] transition-colors space-y-2"
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-xs font-medium text-[#F5F5F0] truncate">
                           {src.title || src.file_name || "Document"}
                         </span>
-                        {src.page && (
+                        {src.page ? (
                           <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#1A160F] text-[#C9A45C] border border-[rgba(201,164,92,0.25)] shrink-0">
                             Page {src.page}
                           </span>
-                        )}
+                        ) : null}
                       </div>
+
+                      {src.path ? (
+                        <div
+                          className="flex items-center gap-1.5 text-[10px] font-mono text-[#666660] truncate"
+                          title={src.path}
+                        >
+                          <Folder className="w-3 h-3 text-[#C9A45C]/60 shrink-0" />
+                          <span className="truncate">{src.path}</span>
+                        </div>
+                      ) : null}
+
                       <p className="text-xs text-[#A6A6A0] line-clamp-3 leading-relaxed">
                         {src.snippet}
                       </p>
+                      <div className="text-[10px] font-mono text-[#666660] pt-1">
+                        MOSS Relevance: {(src.score || 1.0).toFixed(2)}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -442,11 +450,7 @@ export default function WorkspacePage() {
                 disabled={!question.trim() || loading}
                 className="px-3.5 py-1.5 rounded-lg bg-[#C9A45C] hover:bg-[#D8B46E] text-[#050505] font-semibold text-xs transition-all disabled:opacity-30"
               >
-                {loading ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-[#050505]" />
-                ) : (
-                  "Send"
-                )}
+                Ask
               </button>
             </div>
           </div>

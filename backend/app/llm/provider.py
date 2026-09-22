@@ -2,6 +2,7 @@ import os
 import time
 import json
 import logging
+import asyncio
 import httpx
 from abc import ABC, abstractmethod
 from typing import Dict, Any, List, Optional, Tuple, AsyncGenerator
@@ -9,24 +10,22 @@ from app.config import settings
 
 logger = logging.getLogger("veil.llm.provider")
 
-SYSTEM_PROMPT = """You are VEIL, a privacy-first, local-first general-purpose AI assistant.
+SYSTEM_PROMPT = """You are the reasoning layer of VEIL.
 
-You can answer general questions, explain concepts, write and analyze code, reason about problems, brainstorm, summarize information, and assist with technical and non-technical tasks.
+Answer the user's question using the retrieved local context whenever the question concerns the user's local files.
 
-When local file context is provided:
-- Use it to answer the user's specific questions.
-- Distinguish local evidence from your general knowledge.
-- Do not invent information that is absent from the supplied context.
-- Explicitly cite relevant local sources and filenames.
+Do not invent local files, filenames, paths, passages, or facts.
 
-When no local file context is provided:
-- Answer normally and comprehensively using your general knowledge.
-- Never claim that you cannot answer merely because no retrieved file context exists.
+If the retrieved context does not contain enough information, clearly say that the available local files do not contain enough information.
 
-You operate reliably and privately."""
+Distinguish between information found in the retrieved files and general knowledge.
+
+Keep answers concise but useful.
+
+Never claim that you searched the Windows filesystem yourself. The local retrieval layer is MOSS."""
 
 class BaseLLMProvider(ABC):
-    """Abstract interface for all LLM providers (OLLAMA_LOCAL, OLLAMA_CLOUD, API)."""
+    """Abstract interface for all LLM providers."""
 
     @abstractmethod
     async def generate(
@@ -65,319 +64,288 @@ class BaseLLMProvider(ABC):
         pass
 
 
-class OllamaLocalProvider(BaseLLMProvider):
+class GeminiProvider(BaseLLMProvider):
     """
-    Connects to a local Ollama instance (default: http://localhost:11434).
-    Standard development mode on user laptop.
+    Primary AI reasoning & generation engine powered by Google Gemini API.
+    Handles natural language queries, question answering, summarization,
+    reasoning, and deep document/context understanding.
+    Never searches the Windows filesystem directly — reasons strictly over MOSS retrieved context.
     """
 
     def __init__(self):
-        self.base_url = settings.OLLAMA_BASE_URL.rstrip("/")
-        self.model = settings.OLLAMA_MODEL
-        self._cached_models: List[str] = []
-        self._cached_at: float = 0.0
-        logger.info(f"OllamaLocalProvider initialized: model={self.model}, base_url={self.base_url}")
+        raw_key = (
+            getattr(settings, "GEMINI_API_KEY", None)
+            or os.environ.get("GEMINI_API_KEY")
+            or ""
+        ).strip()
+        # Ensure placeholder keys are treated as unconfigured
+        if raw_key == "YOUR_GEMINI_API_KEY_HERE":
+            raw_key = ""
+        # Handle accidental double-paste if key was concatenated twice
+        if len(raw_key) > 40 and len(raw_key) % 2 == 0 and raw_key[:len(raw_key)//2] == raw_key[len(raw_key)//2:]:
+            raw_key = raw_key[:len(raw_key)//2]
+        self.api_key = raw_key
+        self.model = (getattr(settings, "GEMINI_MODEL", None) or "gemini-3-flash-preview").strip()
+        logger.info(f"GeminiProvider initialized: model={self.model}, configured={bool(self.api_key)}")
+
+    def is_configured(self) -> bool:
+        return bool(self.api_key and self.api_key != "YOUR_GEMINI_API_KEY_HERE")
 
     def set_model(self, model_name: str) -> str:
         self.model = model_name.strip()
         return self.model
 
     async def get_available_models(self) -> List[str]:
-        now = time.time()
-        if self._cached_models and (now - self._cached_at < 30.0):
-            return self._cached_models
-        try:
-            async with httpx.AsyncClient(timeout=3.0) as client:
-                res = await client.get(f"{self.base_url}/api/tags")
-                if res.status_code == 200:
-                    models = [m.get("name") for m in res.json().get("models", []) if m.get("name")]
-                    self._cached_models = models
-                    self._cached_at = now
-                    return models
-        except Exception as e:
-            logger.warning(f"Failed to query Ollama models at {self.base_url}: {e}")
-        return self._cached_models
+        return ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash", self.model]
 
     async def check_health(self) -> Dict[str, Any]:
+        if not self.is_configured():
+            return {
+                "connected": False,
+                "provider": "GEMINI",
+                "model": self.model,
+                "available_models": await self.get_available_models(),
+                "configured": False,
+                "status": "unconfigured",
+                "error": "Gemini API key is not configured."
+            }
+
         start = time.perf_counter()
         try:
-            models = await self.get_available_models()
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}?key={self.api_key}"
+            async with httpx.AsyncClient(timeout=8.0) as client:
+                res = await client.get(url)
+                elapsed_ms = round((time.perf_counter() - start) * 1000, 2)
+                if res.status_code == 200:
+                    return {
+                        "connected": True,
+                        "provider": "GEMINI",
+                        "model": self.model,
+                        "available_models": await self.get_available_models(),
+                        "configured": True,
+                        "status": "connected",
+                        "latencyMs": elapsed_ms
+                    }
+                elif res.status_code == 400 or res.status_code == 403:
+                    return {
+                        "connected": False,
+                        "provider": "GEMINI",
+                        "model": self.model,
+                        "available_models": [self.model],
+                        "configured": True,
+                        "status": "auth_error",
+                        "latencyMs": elapsed_ms,
+                        "error": "Gemini API key is not configured."
+                    }
+                else:
+                    return {
+                        "connected": False,
+                        "provider": "GEMINI",
+                        "model": self.model,
+                        "available_models": [self.model],
+                        "configured": True,
+                        "status": "unavailable",
+                        "latencyMs": elapsed_ms,
+                        "error": "Gemini is currently unavailable."
+                    }
+        except Exception as e:
             elapsed_ms = round((time.perf_counter() - start) * 1000, 2)
-            if models:
-                if self.model not in models:
-                    match = next((m for m in models if m.startswith(self.model) or self.model.startswith(m)), None)
-                    if match:
-                        self.model = match
-                    else:
-                        self.model = models[0]
-                return {
-                    "connected": True,
-                    "provider": "OLLAMA_LOCAL",
-                    "model": self.model,
-                    "available_models": models,
-                    "base_url": self.base_url,
-                    "latencyMs": elapsed_ms
+            return {
+                "connected": False,
+                "provider": "GEMINI",
+                "model": self.model,
+                "available_models": [self.model],
+                "configured": True,
+                "status": "unavailable",
+                "latencyMs": elapsed_ms,
+                "error": "Gemini is currently unavailable."
+            }
+
+    async def generate(
+        self, prompt: str, system: Optional[str] = None, temperature: float = 0.2
+    ) -> Tuple[str, float, str, str]:
+        if not self.is_configured():
+            raise RuntimeError("Gemini API key is not configured.")
+
+        start = time.perf_counter()
+        sys = system or SYSTEM_PROMPT
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.api_key}"
+        payload: Dict[str, Any] = {
+            "contents": [
+                {
+                    "role": "user",
+                    "parts": [{"text": prompt}]
                 }
-            return {
-                "connected": False,
-                "provider": "OLLAMA_LOCAL",
-                "model": self.model,
-                "available_models": [],
-                "base_url": self.base_url,
-                "latencyMs": elapsed_ms,
-                "error": "No models installed in Ollama. Pull a model via `ollama pull qwen2.5:0.5b`."
+            ],
+            "generationConfig": {
+                "temperature": temperature,
+                "maxOutputTokens": settings.LLM_MAX_TOKENS
             }
-        except Exception as e:
-            elapsed_ms = round((time.perf_counter() - start) * 1000, 2)
-            return {
-                "connected": False,
-                "provider": "OLLAMA_LOCAL",
-                "model": self.model,
-                "available_models": [],
-                "base_url": self.base_url,
-                "latencyMs": elapsed_ms,
-                "error": f"Ollama unreachable at {self.base_url}: {str(e)}"
+        }
+        if sys:
+            payload["systemInstruction"] = {
+                "parts": [{"text": sys}]
             }
 
-    async def generate(
-        self, prompt: str, system: Optional[str] = None, temperature: float = 0.2
-    ) -> Tuple[str, float, str, str]:
-        start = time.perf_counter()
-        sys = system or SYSTEM_PROMPT
-        payload = {
-            "model": self.model,
-            "prompt": prompt,
-            "system": sys,
-            "stream": False,
-            "options": {"temperature": temperature}
-        }
-        try:
-            async with httpx.AsyncClient(timeout=90.0) as client:
-                res = await client.post(f"{self.base_url}/api/generate", json=payload)
-                elapsed_ms = round((time.perf_counter() - start) * 1000, 2)
-                if res.status_code == 200:
-                    answer = res.json().get("response", "").strip()
-                    return answer, elapsed_ms, "OLLAMA_LOCAL", self.model
-                else:
-                    raise RuntimeError(f"Ollama returned HTTP {res.status_code}: {res.text}")
-        except httpx.ConnectError:
-            raise RuntimeError(f"Local Ollama daemon unreachable at {self.base_url}. Please start Ollama ('ollama serve') or check connectivity.")
-        except httpx.TimeoutException:
-            raise RuntimeError(f"Ollama generation timed out after 90 seconds on model {self.model}.")
-        except Exception as e:
-            raise RuntimeError(f"Ollama generation failed: {str(e)}")
+        timeout_sec = getattr(settings, "LLM_TIMEOUT", 45.0)
+
+        # Retry once on temporary 503 / 500 error
+        for attempt in range(2):
+            try:
+                async with httpx.AsyncClient(timeout=timeout_sec) as client:
+                    res = await client.post(url, json=payload)
+                    elapsed_ms = round((time.perf_counter() - start) * 1000, 2)
+
+                    if res.status_code == 200:
+                        data = res.json()
+                        candidates = data.get("candidates", [])
+                        if candidates and "content" in candidates[0]:
+                            parts = candidates[0]["content"].get("parts", [])
+                            text = "".join(p.get("text", "") for p in parts).strip()
+                            return text, elapsed_ms, "GEMINI", self.model
+                        return "No response generated by Gemini model.", elapsed_ms, "GEMINI", self.model
+                    elif res.status_code in (400, 401, 403):
+                        raise RuntimeError("Gemini API key is not configured.")
+                    elif res.status_code in (500, 502, 503, 504) and attempt == 0:
+                        logger.warning(f"Gemini returned HTTP {res.status_code}, retrying once in 1.5s...")
+                        await asyncio.sleep(1.5)
+                        continue
+                    else:
+                        raise RuntimeError("Gemini is currently unavailable.")
+            except (httpx.ConnectError, httpx.TimeoutException, httpx.NetworkError):
+                if attempt == 0:
+                    await asyncio.sleep(1.5)
+                    continue
+                raise RuntimeError("Gemini is currently unavailable.")
+            except RuntimeError:
+                raise
+            except Exception as e:
+                raise RuntimeError(f"Gemini generation failed: {str(e)}")
+
+        raise RuntimeError("Gemini is currently unavailable.")
 
     async def chat(
         self, messages: List[Dict[str, str]], temperature: float = 0.2
     ) -> Tuple[str, float, str, str]:
+        if not self.is_configured():
+            raise RuntimeError("Gemini API key is not configured.")
+
         start = time.perf_counter()
-        payload = {
-            "model": self.model,
-            "messages": messages,
-            "stream": False,
-            "options": {"temperature": temperature}
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.api_key}"
+
+        contents = []
+        sys_text = ""
+        for m in messages:
+            role = m.get("role", "user")
+            content = m.get("content", "")
+            if role == "system":
+                sys_text = content
+            else:
+                gemini_role = "model" if role == "assistant" else "user"
+                contents.append({"role": gemini_role, "parts": [{"text": content}]})
+
+        payload: Dict[str, Any] = {
+            "contents": contents,
+            "generationConfig": {
+                "temperature": temperature,
+                "maxOutputTokens": settings.LLM_MAX_TOKENS
+            }
         }
-        try:
-            async with httpx.AsyncClient(timeout=90.0) as client:
-                res = await client.post(f"{self.base_url}/api/chat", json=payload)
-                elapsed_ms = round((time.perf_counter() - start) * 1000, 2)
-                if res.status_code == 200:
-                    answer = res.json().get("message", {}).get("content", "").strip()
-                    return answer, elapsed_ms, "OLLAMA_LOCAL", self.model
-                else:
-                    raise RuntimeError(f"Ollama chat returned HTTP {res.status_code}: {res.text}")
-        except httpx.ConnectError:
-            raise RuntimeError(f"Local Ollama daemon unreachable at {self.base_url}. Please start Ollama ('ollama serve').")
-        except httpx.TimeoutException:
-            raise RuntimeError(f"Ollama chat timed out after 90 seconds.")
-        except Exception as e:
-            raise RuntimeError(f"Ollama chat failed: {str(e)}")
+        if sys_text or SYSTEM_PROMPT:
+            payload["systemInstruction"] = {
+                "parts": [{"text": sys_text or SYSTEM_PROMPT}]
+            }
+
+        timeout_sec = getattr(settings, "LLM_TIMEOUT", 45.0)
+
+        for attempt in range(2):
+            try:
+                async with httpx.AsyncClient(timeout=timeout_sec) as client:
+                    res = await client.post(url, json=payload)
+                    elapsed_ms = round((time.perf_counter() - start) * 1000, 2)
+
+                    if res.status_code == 200:
+                        data = res.json()
+                        candidates = data.get("candidates", [])
+                        if candidates and "content" in candidates[0]:
+                            parts = candidates[0]["content"].get("parts", [])
+                            text = "".join(p.get("text", "") for p in parts).strip()
+                            return text, elapsed_ms, "GEMINI", self.model
+                        return "No response generated by Gemini model.", elapsed_ms, "GEMINI", self.model
+                    elif res.status_code in (400, 401, 403):
+                        raise RuntimeError("Gemini API key is not configured.")
+                    elif res.status_code in (500, 502, 503, 504) and attempt == 0:
+                        await asyncio.sleep(1.5)
+                        continue
+                    else:
+                        raise RuntimeError("Gemini is currently unavailable.")
+            except (httpx.ConnectError, httpx.TimeoutException, httpx.NetworkError):
+                if attempt == 0:
+                    await asyncio.sleep(1.5)
+                    continue
+                raise RuntimeError("Gemini is currently unavailable.")
+            except RuntimeError:
+                raise
+            except Exception as e:
+                raise RuntimeError(f"Gemini chat failed: {str(e)}")
+
+        raise RuntimeError("Gemini is currently unavailable.")
 
     async def stream_generate(
         self, prompt: str, system: Optional[str] = None, temperature: float = 0.2
     ) -> AsyncGenerator[str, None]:
+        if not self.is_configured():
+            yield "[Gemini API key is not configured.]"
+            return
+
         sys = system or SYSTEM_PROMPT
-        payload = {
-            "model": self.model,
-            "prompt": prompt,
-            "system": sys,
-            "stream": True,
-            "options": {"temperature": temperature}
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:streamGenerateContent?key={self.api_key}&alt=sse"
+        payload: Dict[str, Any] = {
+            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+            "generationConfig": {
+                "temperature": temperature,
+                "maxOutputTokens": settings.LLM_MAX_TOKENS
+            }
         }
+        if sys:
+            payload["systemInstruction"] = {"parts": [{"text": sys}]}
+
+        timeout_sec = getattr(settings, "LLM_TIMEOUT", 45.0)
         try:
-            async with httpx.AsyncClient(timeout=90.0) as client:
-                async with client.stream("POST", f"{self.base_url}/api/generate", json=payload) as response:
+            async with httpx.AsyncClient(timeout=timeout_sec) as client:
+                async with client.stream("POST", url, json=payload) as response:
                     if response.status_code != 200:
-                        yield f"Ollama error: HTTP {response.status_code}"
+                        yield "Gemini is currently unavailable."
                         return
                     async for line in response.aiter_lines():
-                        if line:
-                            try:
-                                chunk = json.loads(line)
-                                token = chunk.get("response", "")
-                                if token:
-                                    yield token
-                            except Exception:
-                                continue
-        except Exception as e:
-            yield f"[Generation error: {str(e)}]"
-
-
-class OllamaCloudProvider(BaseLLMProvider):
-    """
-    Connects to a remote or cloud-hosted Ollama server.
-    Supports optional Bearer token authentication via OLLAMA_API_KEY.
-    """
-
-    def __init__(self):
-        self.base_url = settings.OLLAMA_BASE_URL.rstrip("/")
-        self.model = settings.OLLAMA_MODEL
-        self.api_key = settings.OLLAMA_API_KEY
-        self._cached_models: List[str] = []
-        self._cached_at: float = 0.0
-        logger.info(f"OllamaCloudProvider initialized: model={self.model}, base_url={self.base_url}")
-
-    def _headers(self) -> Dict[str, str]:
-        headers = {"Content-Type": "application/json"}
-        if self.api_key:
-            headers["Authorization"] = f"Bearer {self.api_key}"
-        return headers
-
-    def set_model(self, model_name: str) -> str:
-        self.model = model_name.strip()
-        return self.model
-
-    async def get_available_models(self) -> List[str]:
-        now = time.time()
-        if self._cached_models and (now - self._cached_at < 30.0):
-            return self._cached_models
-        try:
-            async with httpx.AsyncClient(timeout=5.0) as client:
-                res = await client.get(f"{self.base_url}/api/tags", headers=self._headers())
-                if res.status_code == 200:
-                    models = [m.get("name") for m in res.json().get("models", []) if m.get("name")]
-                    self._cached_models = models
-                    self._cached_at = now
-                    return models
-        except Exception as e:
-            logger.warning(f"Failed to query remote Ollama at {self.base_url}: {e}")
-        return self._cached_models or [self.model]
-
-    async def check_health(self) -> Dict[str, Any]:
-        start = time.perf_counter()
-        try:
-            models = await self.get_available_models()
-            elapsed_ms = round((time.perf_counter() - start) * 1000, 2)
-            return {
-                "connected": bool(models),
-                "provider": "OLLAMA_CLOUD",
-                "model": self.model,
-                "available_models": models,
-                "base_url": self.base_url,
-                "latencyMs": elapsed_ms
-            }
-        except Exception as e:
-            elapsed_ms = round((time.perf_counter() - start) * 1000, 2)
-            return {
-                "connected": False,
-                "provider": "OLLAMA_CLOUD",
-                "model": self.model,
-                "available_models": [],
-                "base_url": self.base_url,
-                "latencyMs": elapsed_ms,
-                "error": f"Remote Ollama unreachable at {self.base_url}: {str(e)}"
-            }
-
-    async def generate(
-        self, prompt: str, system: Optional[str] = None, temperature: float = 0.2
-    ) -> Tuple[str, float, str, str]:
-        start = time.perf_counter()
-        sys = system or SYSTEM_PROMPT
-        payload = {
-            "model": self.model,
-            "prompt": prompt,
-            "system": sys,
-            "stream": False,
-            "options": {"temperature": temperature}
-        }
-        try:
-            async with httpx.AsyncClient(timeout=90.0) as client:
-                res = await client.post(f"{self.base_url}/api/generate", json=payload, headers=self._headers())
-                elapsed_ms = round((time.perf_counter() - start) * 1000, 2)
-                if res.status_code == 200:
-                    answer = res.json().get("response", "").strip()
-                    return answer, elapsed_ms, "OLLAMA_CLOUD", self.model
-                else:
-                    raise RuntimeError(f"Remote Ollama returned HTTP {res.status_code}: {res.text}")
-        except httpx.ConnectError:
-            raise RuntimeError(f"Remote Ollama unreachable at {self.base_url}.")
-        except httpx.TimeoutException:
-            raise RuntimeError(f"Remote Ollama timed out after 90 seconds.")
-        except Exception as e:
-            raise RuntimeError(f"Remote Ollama generation failed: {str(e)}")
-
-    async def chat(
-        self, messages: List[Dict[str, str]], temperature: float = 0.2
-    ) -> Tuple[str, float, str, str]:
-        start = time.perf_counter()
-        payload = {
-            "model": self.model,
-            "messages": messages,
-            "stream": False,
-            "options": {"temperature": temperature}
-        }
-        try:
-            async with httpx.AsyncClient(timeout=90.0) as client:
-                res = await client.post(f"{self.base_url}/api/chat", json=payload, headers=self._headers())
-                elapsed_ms = round((time.perf_counter() - start) * 1000, 2)
-                if res.status_code == 200:
-                    answer = res.json().get("message", {}).get("content", "").strip()
-                    return answer, elapsed_ms, "OLLAMA_CLOUD", self.model
-                else:
-                    raise RuntimeError(f"Remote Ollama chat returned HTTP {res.status_code}: {res.text}")
-        except Exception as e:
-            raise RuntimeError(f"Remote Ollama chat failed: {str(e)}")
-
-    async def stream_generate(
-        self, prompt: str, system: Optional[str] = None, temperature: float = 0.2
-    ) -> AsyncGenerator[str, None]:
-        sys = system or SYSTEM_PROMPT
-        payload = {
-            "model": self.model,
-            "prompt": prompt,
-            "system": sys,
-            "stream": True,
-            "options": {"temperature": temperature}
-        }
-        try:
-            async with httpx.AsyncClient(timeout=90.0) as client:
-                async with client.stream("POST", f"{self.base_url}/api/generate", json=payload, headers=self._headers()) as response:
-                    if response.status_code != 200:
-                        yield f"Remote Ollama error: HTTP {response.status_code}"
-                        return
-                    async for line in response.aiter_lines():
-                        if line:
-                            try:
-                                chunk = json.loads(line)
-                                token = chunk.get("response", "")
-                                if token:
-                                    yield token
-                            except Exception:
-                                continue
-        except Exception as e:
-            yield f"[Generation error: {str(e)}]"
+                        if line.startswith("data: "):
+                            raw = line[6:].strip()
+                            if raw:
+                                try:
+                                    chunk = json.loads(raw)
+                                    candidates = chunk.get("candidates", [])
+                                    if candidates and "content" in candidates[0]:
+                                        parts = candidates[0]["content"].get("parts", [])
+                                        for p in parts:
+                                            txt = p.get("text", "")
+                                            if txt:
+                                                yield txt
+                                except Exception:
+                                    continue
+        except Exception:
+            yield "Gemini is currently unavailable."
 
 
 class CloudAPIProvider(BaseLLMProvider):
     """
-    Connects to standard OpenAI-compatible cloud endpoints (Groq, Gemini OpenAI endpoint, OpenAI, OpenRouter, Together).
-    Used in production mode without requiring a local GPU.
+    Connects to standard OpenAI-compatible cloud endpoints (Groq, Together, OpenAI).
+    Optional fallback if configured.
     """
 
     def __init__(self):
         self.base_url = settings.LLM_BASE_URL.rstrip("/")
         self.model = settings.LLM_MODEL
-        self.api_key = settings.LLM_API_KEY or settings.OLLAMA_API_KEY
+        self.api_key = settings.LLM_API_KEY
         logger.info(f"CloudAPIProvider initialized: model={self.model}, base_url={self.base_url}")
 
     def set_model(self, model_name: str) -> str:
@@ -407,13 +375,7 @@ class CloudAPIProvider(BaseLLMProvider):
         self, prompt: str, system: Optional[str] = None, temperature: float = 0.2
     ) -> Tuple[str, float, str, str]:
         if not self.api_key:
-            return (
-                "Cloud LLM API Key is not configured. Please set LLM_API_KEY in your production environment.",
-                0.0,
-                "API",
-                self.model
-            )
-
+            raise RuntimeError("API key is not configured.")
         start = time.perf_counter()
         sys = system or SYSTEM_PROMPT
         payload = {
@@ -423,42 +385,7 @@ class CloudAPIProvider(BaseLLMProvider):
                 {"role": "user", "content": prompt}
             ],
             "temperature": temperature,
-            "max_tokens": 1000
-        }
-
-        url = f"{self.base_url}/chat/completions"
-        try:
-            async with httpx.AsyncClient(timeout=45.0) as client:
-                res = await client.post(url, json=payload, headers=self._headers())
-                elapsed_ms = round((time.perf_counter() - start) * 1000, 2)
-                if res.status_code == 200:
-                    data = res.json()
-                    answer = data["choices"][0]["message"]["content"].strip()
-                    return answer, elapsed_ms, "API", self.model
-                else:
-                    raise RuntimeError(f"Cloud LLM API error ({res.status_code}): {res.text}")
-        except httpx.TimeoutException:
-            raise RuntimeError(f"Cloud LLM API request timed out after 45 seconds.")
-        except Exception as e:
-            raise RuntimeError(f"Cloud LLM API call failed: {str(e)}")
-
-    async def chat(
-        self, messages: List[Dict[str, str]], temperature: float = 0.2
-    ) -> Tuple[str, float, str, str]:
-        if not self.api_key:
-            return (
-                "Cloud LLM API Key is not configured. Please set LLM_API_KEY in your production environment.",
-                0.0,
-                "API",
-                self.model
-            )
-
-        start = time.perf_counter()
-        payload = {
-            "model": self.model,
-            "messages": messages,
-            "temperature": temperature,
-            "max_tokens": 1000
+            "max_tokens": settings.LLM_MAX_TOKENS
         }
         url = f"{self.base_url}/chat/completions"
         try:
@@ -469,17 +396,41 @@ class CloudAPIProvider(BaseLLMProvider):
                     answer = res.json()["choices"][0]["message"]["content"].strip()
                     return answer, elapsed_ms, "API", self.model
                 else:
-                    raise RuntimeError(f"Cloud LLM API error ({res.status_code}): {res.text}")
+                    raise RuntimeError(f"Cloud API returned HTTP {res.status_code}: {res.text}")
         except Exception as e:
-            raise RuntimeError(f"Cloud LLM API call failed: {str(e)}")
+            raise RuntimeError(f"Cloud API generation failed: {str(e)}")
+
+    async def chat(
+        self, messages: List[Dict[str, str]], temperature: float = 0.2
+    ) -> Tuple[str, float, str, str]:
+        if not self.api_key:
+            raise RuntimeError("API key is not configured.")
+        start = time.perf_counter()
+        payload = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": settings.LLM_MAX_TOKENS
+        }
+        url = f"{self.base_url}/chat/completions"
+        try:
+            async with httpx.AsyncClient(timeout=45.0) as client:
+                res = await client.post(url, json=payload, headers=self._headers())
+                elapsed_ms = round((time.perf_counter() - start) * 1000, 2)
+                if res.status_code == 200:
+                    answer = res.json()["choices"][0]["message"]["content"].strip()
+                    return answer, elapsed_ms, "API", self.model
+                else:
+                    raise RuntimeError(f"Cloud API chat returned HTTP {res.status_code}: {res.text}")
+        except Exception as e:
+            raise RuntimeError(f"Cloud API chat failed: {str(e)}")
 
     async def stream_generate(
         self, prompt: str, system: Optional[str] = None, temperature: float = 0.2
     ) -> AsyncGenerator[str, None]:
         if not self.api_key:
-            yield "Cloud LLM API Key is not configured. Please set LLM_API_KEY in your production environment."
+            yield "[API key is not configured.]"
             return
-
         sys = system or SYSTEM_PROMPT
         payload = {
             "model": self.model,
@@ -495,7 +446,7 @@ class CloudAPIProvider(BaseLLMProvider):
             async with httpx.AsyncClient(timeout=45.0) as client:
                 async with client.stream("POST", url, json=payload, headers=self._headers()) as response:
                     if response.status_code != 200:
-                        yield f"Cloud LLM error: HTTP {response.status_code}"
+                        yield f"Cloud API error: HTTP {response.status_code}"
                         return
                     async for line in response.aiter_lines():
                         if line.startswith("data: "):
@@ -513,155 +464,10 @@ class CloudAPIProvider(BaseLLMProvider):
             yield f"[API streaming error: {str(e)}]"
 
 
-class GeminiProvider(BaseLLMProvider):
-    """
-    Connects to Google Gemini Cloud REST API.
-    Provides fast, serverless-compatible inference with large context window.
-    """
-
-    def __init__(self):
-        self.api_key = settings.GEMINI_API_KEY or os.environ.get("GEMINI_API_KEY", "")
-        self.model = settings.GEMINI_MODEL or "gemini-2.5-flash"
-        self.base_url = "https://generativelanguage.googleapis.com/v1beta"
-        logger.info(f"GeminiProvider initialized: model={self.model}, configured={bool(self.api_key)}")
-
-    def set_model(self, model_name: str) -> str:
-        self.model = model_name.strip()
-        return self.model
-
-    async def get_available_models(self) -> List[str]:
-        return ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-1.5-pro"]
-
-    async def check_health(self) -> Dict[str, Any]:
-        return {
-            "connected": bool(self.api_key),
-            "provider": "GEMINI",
-            "model": self.model,
-            "available_models": await self.get_available_models(),
-            "configured": bool(self.api_key),
-            "base_url": self.base_url,
-        }
-
-    async def generate(
-        self, prompt: str, system: Optional[str] = None, temperature: float = 0.2
-    ) -> Tuple[str, float, str, str]:
-        if not self.api_key:
-            return (
-                "GEMINI_API_KEY is not configured. Please set GEMINI_API_KEY in your environment variables.",
-                0.0,
-                "GEMINI",
-                self.model
-            )
-
-        start = time.perf_counter()
-        sys_prompt = system or SYSTEM_PROMPT
-
-        payload = {
-            "system_instruction": {
-                "parts": [{"text": sys_prompt}]
-            },
-            "contents": [
-                {
-                    "role": "user",
-                    "parts": [{"text": prompt}]
-                }
-            ],
-            "generationConfig": {
-                "temperature": temperature
-            }
-        }
-
-        url = f"{self.base_url}/models/{self.model}:generateContent?key={self.api_key}"
-        try:
-            async with httpx.AsyncClient(timeout=45.0) as client:
-                res = await client.post(url, json=payload)
-                elapsed_ms = round((time.perf_counter() - start) * 1000, 2)
-                if res.status_code == 200:
-                    data = res.json()
-                    candidates = data.get("candidates", [])
-                    if candidates and "content" in candidates[0]:
-                        parts = candidates[0]["content"].get("parts", [])
-                        answer = "".join(p.get("text", "") for p in parts).strip()
-                        return answer, elapsed_ms, "GEMINI", self.model
-                    return "No response text received from Gemini.", elapsed_ms, "GEMINI", self.model
-                else:
-                    raise RuntimeError(f"Gemini API returned HTTP {res.status_code}: {res.text}")
-        except Exception as e:
-            raise RuntimeError(f"Gemini API generation failed: {str(e)}")
-
-    async def chat(
-        self, messages: List[Dict[str, str]], temperature: float = 0.2
-    ) -> Tuple[str, float, str, str]:
-        if not self.api_key:
-            return (
-                "GEMINI_API_KEY is not configured. Please set GEMINI_API_KEY in your environment variables.",
-                0.0,
-                "GEMINI",
-                self.model
-            )
-
-        start = time.perf_counter()
-        contents = []
-        for m in messages:
-            role = "model" if m.get("role") in ["assistant", "model"] else "user"
-            contents.append({
-                "role": role,
-                "parts": [{"text": m.get("content", "")}]
-            })
-
-        payload = {
-            "system_instruction": {
-                "parts": [{"text": SYSTEM_PROMPT}]
-            },
-            "contents": contents,
-            "generationConfig": {
-                "temperature": temperature
-            }
-        }
-
-        url = f"{self.base_url}/models/{self.model}:generateContent?key={self.api_key}"
-        try:
-            async with httpx.AsyncClient(timeout=45.0) as client:
-                res = await client.post(url, json=payload)
-                elapsed_ms = round((time.perf_counter() - start) * 1000, 2)
-                if res.status_code == 200:
-                    data = res.json()
-                    candidates = data.get("candidates", [])
-                    if candidates and "content" in candidates[0]:
-                        parts = candidates[0]["content"].get("parts", [])
-                        answer = "".join(p.get("text", "") for p in parts).strip()
-                        return answer, elapsed_ms, "GEMINI", self.model
-                    return "No response text received from Gemini.", elapsed_ms, "GEMINI", self.model
-                else:
-                    raise RuntimeError(f"Gemini chat API returned HTTP {res.status_code}: {res.text}")
-        except Exception as e:
-            raise RuntimeError(f"Gemini chat failed: {str(e)}")
-
-    async def stream_generate(
-        self, prompt: str, system: Optional[str] = None, temperature: float = 0.2
-    ) -> AsyncGenerator[str, None]:
-        # For stream generate, call generate and yield
-        answer, _, _, _ = await self.generate(prompt, system=system, temperature=temperature)
-        yield answer
-
-
 def get_llm_provider() -> BaseLLMProvider:
-    """Factory function returning active LLM provider based on AI_PROVIDER or LLM_PROVIDER setting."""
-    prov = (getattr(settings, "AI_PROVIDER", None) or settings.LLM_PROVIDER or "GEMINI").upper().strip()
-    if prov in ["GEMINI", "GOOGLE", "GOOGLE_GEMINI"]:
-        # If GEMINI is configured or requested, return GeminiProvider
-        api_key = settings.GEMINI_API_KEY or os.environ.get("GEMINI_API_KEY", "")
-        if api_key:
-            return GeminiProvider()
-        # Fallback gracefully to Ollama if no API key is set in local dev
-        logger.info("GEMINI_API_KEY not set; falling back to OllamaLocalProvider for local development.")
-        return OllamaLocalProvider()
-    elif prov in ["OLLAMA_LOCAL", "OLLAMA", "LOCAL"]:
-        return OllamaLocalProvider()
-    elif prov in ["OLLAMA_CLOUD", "CLOUD_OLLAMA", "REMOTE_OLLAMA"]:
-        return OllamaCloudProvider()
-    elif prov in ["API", "CLOUD", "GROQ", "OPENAI"]:
+    """Factory function returning the active primary LLM provider (defaults to GeminiProvider)."""
+    prov = (getattr(settings, "LLM_PROVIDER", "GEMINI") or "GEMINI").upper().strip()
+    if prov in ["API", "GROQ", "OPENAI", "OPENROUTER"]:
         return CloudAPIProvider()
-    else:
-        logger.warning(f"Unrecognized provider '{prov}'. Defaulting to GeminiProvider.")
-        return GeminiProvider()
+    # Default to GeminiProvider
+    return GeminiProvider()

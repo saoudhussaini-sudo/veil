@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from app.services.local_ai_service import local_ai_service
 
-router = APIRouter(prefix="/api/ai", tags=["Local AI"])
+router = APIRouter(prefix="/api/ai", tags=["AI Engine"])
 
 class SelectModelRequest(BaseModel):
     model: str
@@ -13,7 +13,7 @@ class TestGenerateRequest(BaseModel):
 
 @router.get("/models")
 async def get_models():
-    """Lists available models from the local Ollama instance and the active model."""
+    """Lists available models from the Gemini AI provider and the active model."""
     models = await local_ai_service.get_available_models()
     active = await local_ai_service.ensure_active_model()
     return {
@@ -31,14 +31,13 @@ async def select_model(req: SelectModelRequest):
     return {
         "success": True,
         "active_model": new_model,
-        "message": f"Active local AI model changed to {new_model}"
+        "message": f"Active AI model changed to {new_model}"
     }
 
 @router.post("/test")
 async def test_generation(req: TestGenerateRequest):
     """
-    Executes real text generation with actual measured latency against the local LLM.
-    Used for verifying generative capabilities without canned responses.
+    Executes real text generation with actual measured latency against Gemini API.
     """
     if not req.prompt or not req.prompt.strip():
         raise HTTPException(status_code=400, detail="Prompt must not be empty.")
@@ -46,9 +45,9 @@ async def test_generation(req: TestGenerateRequest):
         result = await local_ai_service.test_generate(req.prompt.strip())
         return result
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Local LLM generation failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Gemini generation failed: {str(e)}")
 
 @router.get("/health")
 async def ai_health():
-    """Checks the health and connectivity of the local AI runtime."""
+    """Checks the health and connectivity of the Gemini AI runtime."""
     return await local_ai_service.check_health()

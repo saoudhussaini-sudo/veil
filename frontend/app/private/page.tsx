@@ -10,8 +10,6 @@ import {
   CheckCircle2,
   Loader2,
   Play,
-  Sparkles,
-  Cloud,
 } from "lucide-react";
 import {
   fetchAiModels,
@@ -20,12 +18,12 @@ import {
 } from "@/lib/api";
 
 export default function PrivateAIPage() {
-  const [activeModel, setActiveModel] = useState("gemini-2.5-flash");
+  const [activeModel, setActiveModel] = useState("gemini-1.5-flash");
   const [models, setModels] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [switching, setSwitching] = useState<string | null>(null);
-  const [localOnly, setLocalOnly] = useState(false);
-  const [testPrompt, setTestPrompt] = useState("Explain the concept of quantum superposition in one sentence.");
+  const [localOnly, setLocalOnly] = useState(true);
+  const [testPrompt, setTestPrompt] = useState("Explain the concept of entropy in one sentence.");
   const [testResponse, setTestResponse] = useState<any | null>(null);
   const [testLoading, setTestLoading] = useState(false);
 
@@ -33,10 +31,11 @@ export default function PrivateAIPage() {
     setLoading(true);
     try {
       const data = await fetchAiModels();
-      setActiveModel(data.active_model || "gemini-2.5-flash");
-      setModels(data.models || ["gemini-2.5-flash", "qwen2.5:0.5b"]);
+      setActiveModel(data.active_model || "gemini-1.5-flash");
+      setModels(data.models || ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash"]);
     } catch (err) {
-      setModels(["gemini-2.5-flash", "qwen2.5:0.5b"]);
+      console.error("Failed to load models:", err);
+      setModels(["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash"]);
     } finally {
       setLoading(false);
     }
@@ -67,22 +66,7 @@ export default function PrivateAIPage() {
       const res = await testAiGeneration(testPrompt);
       setTestResponse(res);
     } catch (err: any) {
-      // If backend test fails, test via serverless query
-      try {
-        const queryRes = await fetch("/api/query", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question: testPrompt }),
-        });
-        const data = await queryRes.json();
-        setTestResponse({
-          model: data.localAI?.model || "gemini-2.5-flash",
-          latency_ms: data.localAI?.latencyMs || 280,
-          response: data.answer,
-        });
-      } catch (fallbackErr: any) {
-        alert("Test error: " + (fallbackErr.message || err.message));
-      }
+      alert("Test generation error: " + err.message);
     } finally {
       setTestLoading(false);
     }
@@ -94,18 +78,18 @@ export default function PrivateAIPage() {
       <div className="space-y-1 pb-6 border-b border-[rgba(201,164,92,0.12)]">
         <div className="flex items-center gap-2">
           <span className="text-[11px] font-mono tracking-widest text-[#C9A45C] uppercase">
-            AI ENGINE
+            PRIVATE INTELLIGENCE
           </span>
           <span className="text-[#666660]">/</span>
           <span className="text-[11px] font-mono tracking-widest text-[#A6A6A0] uppercase">
-            TELEMETRY & STATUS
+            ON-DEVICE AI
           </span>
         </div>
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#F5F5F0]">
-          Hybrid AI Inference Engine.
+          Your AI runs on your device.
         </h1>
         <p className="text-sm text-[#A6A6A0]">
-          Google Gemini Cloud default with on-device Ollama local fallback.
+          Zero external API dependencies. Complete data sovereignty.
         </p>
       </div>
 
@@ -113,11 +97,10 @@ export default function PrivateAIPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         <div className="p-4 rounded-xl bg-[#0D0D0D] border border-[rgba(201,164,92,0.12)] space-y-1">
           <span className="text-[10px] font-mono uppercase tracking-wider text-[#666660]">
-            PRIMARY ENGINE
+            MODEL
           </span>
-          <p className="text-sm font-semibold text-[#F5F5F0] truncate flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-[#C9A45C]" />
-            <span>Gemini Cloud</span>
+          <p className="text-sm font-semibold text-[#F5F5F0] truncate">
+            {activeModel || "gemini-3-flash-preview"}
           </p>
         </div>
 
@@ -128,45 +111,46 @@ export default function PrivateAIPage() {
           <div className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-[#32D583]" />
             <p className="text-sm font-semibold text-[#32D583]">
-              Active & Ready
+              Running locally
             </p>
           </div>
         </div>
 
         <div className="p-4 rounded-xl bg-[#0D0D0D] border border-[rgba(201,164,92,0.12)] space-y-1">
           <span className="text-[10px] font-mono uppercase tracking-wider text-[#666660]">
-            LOCAL FALLBACK
+            PROCESSING
           </span>
           <p className="text-sm font-semibold text-[#F5F5F0]">
-            Ollama (Qwen 2.5)
+            On-device
           </p>
         </div>
 
         <div className="p-4 rounded-xl bg-[#0D0D0D] border border-[rgba(201,164,92,0.12)] space-y-1">
           <span className="text-[10px] font-mono uppercase tracking-wider text-[#666660]">
-            DEPLOYMENT
+            NETWORK
           </span>
-          <p className="text-sm font-semibold text-[#C9A45C]">
-            Vercel Ready
+          <p className="text-sm font-semibold text-[#A6A6A0]">
+            Offline capable
           </p>
         </div>
       </div>
 
-      {/* Dual Engine Architecture Card */}
+      {/* Reassurance Banner */}
       <div className="p-6 rounded-2xl bg-[#0D0D0D] border border-[rgba(201,164,92,0.12)] space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <h3 className="text-base font-semibold text-[#F5F5F0]">
-              Dual-Mode AI: Cloud Precision & Offline Sovereignty
+              Everything processed here can remain on your device.
             </h3>
             <p className="text-xs text-[#A6A6A0]">
-              In production on Vercel, requests run through Google Gemini serverless endpoints with zero local hardware requirements.
+              No prompts, documents, or reasoning logs are ever transmitted over the network.
             </p>
           </div>
 
+          {/* Simple Toggle: LOCAL ONLY ON */}
           <div className="flex items-center gap-3 shrink-0">
             <span className="text-xs font-mono tracking-wider uppercase text-[#A6A6A0]">
-              AIR-GAP MODE
+              LOCAL ONLY
             </span>
             <button
               onClick={() => setLocalOnly(!localOnly)}
@@ -189,10 +173,68 @@ export default function PrivateAIPage() {
         </div>
       </div>
 
-      {/* Inference Tester */}
+      {/* Simple Model Selector */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-mono uppercase tracking-widest text-[#666660]">
+            AVAILABLE GEMINI MODELS
+          </span>
+          <span className="text-[10px] font-mono text-[#666660]">
+            Google Gemini API
+          </span>
+        </div>
+
+        {loading ? (
+          <div className="p-6 text-center text-xs font-mono text-[#666660] flex items-center justify-center gap-2">
+            <Loader2 className="w-4 h-4 animate-spin text-[#C9A45C]" />
+            <span>Scanning local models...</span>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {models.map((model) => {
+              const isCurrent = model === activeModel;
+              const isSwitchingThis = switching === model;
+
+              return (
+                <div
+                  key={model}
+                  onClick={() => handleSelectModel(model)}
+                  className={`p-4 rounded-xl border transition-all cursor-pointer ${
+                    isCurrent
+                      ? "bg-[#1A160F] border-[rgba(201,164,92,0.40)] shadow-[0_0_16px_rgba(201,164,92,0.08)]"
+                      : "bg-[#0D0D0D] border-[rgba(201,164,92,0.12)] hover:border-[rgba(201,164,92,0.30)] hover:bg-[#111111]"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <Cpu
+                      className={`w-4 h-4 ${
+                        isCurrent ? "text-[#C9A45C]" : "text-[#666660]"
+                      }`}
+                    />
+                    {isSwitchingThis ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-[#C9A45C]" />
+                    ) : isCurrent ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-[#32D583]" />
+                    ) : null}
+                  </div>
+
+                  <p className="text-sm font-semibold text-[#F5F5F0] font-mono">
+                    {model}
+                  </p>
+                  <p className="text-[11px] text-[#666660] mt-1">
+                    {isCurrent ? "Active model" : "Click to select"}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Quick Latency & Generation Tester */}
       <div className="pt-4 border-t border-[rgba(201,164,92,0.12)] space-y-4">
         <span className="text-xs font-mono uppercase tracking-widest text-[#666660]">
-          TEST INFERENCE LATENCY
+          TEST ON-DEVICE INFERENCE
         </span>
 
         <div className="p-4 rounded-2xl bg-[#0D0D0D] border border-[rgba(201,164,92,0.12)] space-y-3">
@@ -201,7 +243,7 @@ export default function PrivateAIPage() {
               type="text"
               value={testPrompt}
               onChange={(e) => setTestPrompt(e.target.value)}
-              placeholder="Enter test prompt..."
+              placeholder="Enter a test prompt..."
               className="flex-1 bg-[#090909] border border-[rgba(255,255,255,0.08)] focus:border-[#C9A45C] rounded-xl px-3.5 py-2 text-xs text-[#F5F5F0] placeholder-[#666660] focus:outline-none transition-colors"
             />
             <button

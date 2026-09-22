@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   ChevronDown,
   ChevronUp,
@@ -12,56 +12,19 @@ import {
   Info,
   CheckCircle2,
   Trash2,
-  Sparkles,
-  GraduationCap,
-  BookOpen,
 } from "lucide-react";
-import {
-  getPersonalizationSettings,
-  savePersonalizationSettings,
-  clearStudyCache,
-  PersonalizationOptions,
-} from "@/lib/api";
 
-type SettingSection =
-  | "PERSONALIZATION"
-  | "AI"
-  | "GENERAL"
-  | "APPEARANCE"
-  | "PRIVACY"
-  | "STORAGE"
-  | "ABOUT";
+type SettingSection = "GENERAL" | "APPEARANCE" | "AI" | "PRIVACY" | "STORAGE" | "ABOUT";
 
 export default function SettingsPage() {
   const [openSections, setOpenSections] = useState<Record<SettingSection, boolean>>({
-    PERSONALIZATION: true,
-    AI: true,
-    GENERAL: false,
+    GENERAL: true,
     APPEARANCE: false,
+    AI: false,
     PRIVACY: false,
     STORAGE: false,
     ABOUT: false,
   });
-
-  const [personalization, setPersonalization] = useState<PersonalizationOptions>({
-    level: "intermediate",
-    style: "simple",
-    responseLength: "balanced",
-  });
-
-  const [activeProvider, setActiveProvider] = useState<"GEMINI" | "OLLAMA">("GEMINI");
-  const [cacheCleared, setCacheCleared] = useState(false);
-
-  useEffect(() => {
-    const p = getPersonalizationSettings();
-    setPersonalization(p);
-  }, []);
-
-  const handleUpdatePersonalization = (updates: Partial<PersonalizationOptions>) => {
-    const updated = { ...personalization, ...updates };
-    setPersonalization(updated);
-    savePersonalizationSettings(updated);
-  };
 
   const toggleSection = (section: SettingSection) => {
     setOpenSections((prev) => ({
@@ -70,11 +33,14 @@ export default function SettingsPage() {
     }));
   };
 
-  const handleClearCache = () => {
-    clearStudyCache();
-    setCacheCleared(true);
-    setTimeout(() => setCacheCleared(false), 2500);
-  };
+  const sections: { id: SettingSection; title: string; icon: any }[] = [
+    { id: "GENERAL", title: "GENERAL", icon: Sliders },
+    { id: "APPEARANCE", title: "APPEARANCE", icon: Eye },
+    { id: "AI", title: "AI INFERENCE", icon: Cpu },
+    { id: "PRIVACY", title: "PRIVACY & AIR-GAP", icon: Shield },
+    { id: "STORAGE", title: "STORAGE & MEMORY", icon: Database },
+    { id: "ABOUT", title: "ABOUT VEIL", icon: Info },
+  ];
 
   return (
     <div className="flex-1 flex flex-col max-w-3xl w-full mx-auto px-4 sm:px-8 py-8 sm:py-12 space-y-8">
@@ -93,189 +59,12 @@ export default function SettingsPage() {
           Settings
         </h1>
         <p className="text-sm text-[#A6A6A0]">
-          Manage learning preferences, AI provider routing, and security thresholds.
+          Manage runtime preferences, security thresholds, and storage.
         </p>
       </div>
 
       {/* Accordion List */}
       <div className="space-y-3">
-        {/* PERSONALIZATION */}
-        <div className="rounded-2xl border border-[rgba(201,164,92,0.12)] bg-[#0D0D0D] overflow-hidden transition-all">
-          <button
-            onClick={() => toggleSection("PERSONALIZATION")}
-            className="w-full p-4 flex items-center justify-between text-left hover:bg-[#111111] transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <GraduationCap className="w-4 h-4 text-[#C9A45C]" />
-              <span className="text-xs font-mono uppercase tracking-wider text-[#F5F5F0]">
-                STUDY & AI PERSONALIZATION
-              </span>
-            </div>
-            {openSections.PERSONALIZATION ? (
-              <ChevronUp className="w-4 h-4 text-[#666660]" />
-            ) : (
-              <ChevronDown className="w-4 h-4 text-[#666660]" />
-            )}
-          </button>
-
-          {openSections.PERSONALIZATION && (
-            <div className="p-5 pt-1 border-t border-[rgba(201,164,92,0.12)] space-y-4 text-xs">
-              {/* Learning Level */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 py-2 border-b border-[rgba(201,164,92,0.08)]">
-                <div>
-                  <p className="font-medium text-[#F5F5F0]">Learning Level</p>
-                  <p className="text-[11px] text-[#666660]">Tailors explanation depth and vocabulary</p>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  {(["beginner", "intermediate", "advanced"] as const).map((lvl) => (
-                    <button
-                      key={lvl}
-                      onClick={() => handleUpdatePersonalization({ level: lvl })}
-                      className={`px-2.5 py-1 rounded-md text-[11px] font-mono capitalize transition-all ${
-                        personalization.level === lvl
-                          ? "bg-[#1A160F] text-[#C9A45C] border border-[rgba(201,164,92,0.4)] font-semibold"
-                          : "bg-[#090909] text-[#A6A6A0] border border-[#1A1A1A] hover:text-[#F5F5F0]"
-                      }`}
-                    >
-                      {lvl}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Explanation Style */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 py-2 border-b border-[rgba(201,164,92,0.08)]">
-                <div>
-                  <p className="font-medium text-[#F5F5F0]">Learning Style</p>
-                  <p className="text-[11px] text-[#666660]">Pedagogical framing for all responses</p>
-                </div>
-                <select
-                  value={personalization.style || "simple"}
-                  onChange={(e) => handleUpdatePersonalization({ style: e.target.value as any })}
-                  className="bg-[#090909] border border-[#1A1A1A] rounded-xl px-2.5 py-1.5 text-xs text-[#C9A45C] font-mono focus:outline-none"
-                >
-                  <option value="simple">Simple & Intuitive</option>
-                  <option value="detailed">Detailed & Exhaustive</option>
-                  <option value="exam-focused">Exam-Focused & High-Yield</option>
-                  <option value="technical">Technical & Formula Rigorous</option>
-                  <option value="examples-first">Examples & Analogies First</option>
-                </select>
-              </div>
-
-              {/* Response Length */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 py-2">
-                <div>
-                  <p className="font-medium text-[#F5F5F0]">Response Length</p>
-                  <p className="text-[11px] text-[#666660]">Target brevity for generated summaries & answers</p>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  {(["short", "balanced", "detailed"] as const).map((len) => (
-                    <button
-                      key={len}
-                      onClick={() => handleUpdatePersonalization({ responseLength: len })}
-                      className={`px-2.5 py-1 rounded-md text-[11px] font-mono capitalize transition-all ${
-                        personalization.responseLength === len
-                          ? "bg-[#1A160F] text-[#C9A45C] border border-[rgba(201,164,92,0.4)] font-semibold"
-                          : "bg-[#090909] text-[#A6A6A0] border border-[#1A1A1A] hover:text-[#F5F5F0]"
-                      }`}
-                    >
-                      {len}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* AI INFERENCE & PROVIDER */}
-        <div className="rounded-2xl border border-[rgba(201,164,92,0.12)] bg-[#0D0D0D] overflow-hidden transition-all">
-          <button
-            onClick={() => toggleSection("AI")}
-            className="w-full p-4 flex items-center justify-between text-left hover:bg-[#111111] transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <Cpu className="w-4 h-4 text-[#C9A45C]" />
-              <span className="text-xs font-mono uppercase tracking-wider text-[#F5F5F0]">
-                AI PROVIDER & INFERENCE
-              </span>
-            </div>
-            {openSections.AI ? (
-              <ChevronUp className="w-4 h-4 text-[#666660]" />
-            ) : (
-              <ChevronDown className="w-4 h-4 text-[#666660]" />
-            )}
-          </button>
-
-          {openSections.AI && (
-            <div className="p-5 pt-1 border-t border-[rgba(201,164,92,0.12)] space-y-4 text-xs">
-              {/* Active Provider Selector */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 py-2 border-b border-[rgba(201,164,92,0.08)]">
-                <div>
-                  <p className="font-medium text-[#F5F5F0]">Inference Engine</p>
-                  <p className="text-[11px] text-[#666660]">Cloud serverless default with offline local fallback</p>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={() => setActiveProvider("GEMINI")}
-                    className={`px-3 py-1.5 rounded-md text-[11px] font-mono transition-all inline-flex items-center gap-1.5 ${
-                      activeProvider === "GEMINI"
-                        ? "bg-[#1A160F] text-[#C9A45C] border border-[rgba(201,164,92,0.4)] font-semibold"
-                        : "bg-[#090909] text-[#A6A6A0] border border-[#1A1A1A]"
-                    }`}
-                  >
-                    <Sparkles className="w-3 h-3 text-[#C9A45C]" />
-                    <span>Gemini Cloud (Default)</span>
-                  </button>
-
-                  <button
-                    onClick={() => setActiveProvider("OLLAMA")}
-                    className={`px-3 py-1.5 rounded-md text-[11px] font-mono transition-all inline-flex items-center gap-1.5 ${
-                      activeProvider === "OLLAMA"
-                        ? "bg-[#1A160F] text-[#C9A45C] border border-[rgba(201,164,92,0.4)] font-semibold"
-                        : "bg-[#090909] text-[#A6A6A0] border border-[#1A1A1A]"
-                    }`}
-                  >
-                    <span>Ollama Local</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between py-2 border-b border-[rgba(201,164,92,0.08)]">
-                <div>
-                  <p className="font-medium text-[#F5F5F0]">Production Model</p>
-                  <p className="text-[11px] text-[#666660]">High-speed large context window reasoning</p>
-                </div>
-                <span className="text-xs font-mono text-[#C9A45C]">gemini-2.5-flash</span>
-              </div>
-
-              <div className="flex items-center justify-between py-2 border-b border-[rgba(201,164,92,0.08)]">
-                <div>
-                  <p className="font-medium text-[#F5F5F0]">Anti-Hallucination Guardrail</p>
-                  <p className="text-[11px] text-[#666660]">Explicitly rejects unsubstantiated assertions</p>
-                </div>
-                <span className="inline-flex items-center gap-1 text-xs font-mono text-[#32D583]">
-                  <CheckCircle2 className="w-3 h-3" />
-                  <span>ENFORCED</span>
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between py-2">
-                <div>
-                  <p className="font-medium text-[#F5F5F0]">In-Memory Study Cache</p>
-                  <p className="text-[11px] text-[#666660]">Prevents redundant API calls when switching study tabs</p>
-                </div>
-                <button
-                  onClick={handleClearCache}
-                  className="px-3 py-1 rounded-md bg-[#090909] hover:bg-[#111111] border border-[#1A1A1A] hover:border-[rgba(201,164,92,0.3)] text-[11px] font-mono text-[#A6A6A0] transition-all"
-                >
-                  {cacheCleared ? "Cleared!" : "Clear Cache"}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
         {/* GENERAL */}
         <div className="rounded-2xl border border-[rgba(201,164,92,0.12)] bg-[#0D0D0D] overflow-hidden transition-all">
           <button
@@ -364,6 +153,62 @@ export default function SettingsPage() {
           )}
         </div>
 
+        {/* AI INFERENCE */}
+        <div className="rounded-2xl border border-[rgba(201,164,92,0.12)] bg-[#0D0D0D] overflow-hidden transition-all">
+          <button
+            onClick={() => toggleSection("AI")}
+            className="w-full p-4 flex items-center justify-between text-left hover:bg-[#111111] transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Cpu className="w-4 h-4 text-[#C9A45C]" />
+              <span className="text-xs font-mono uppercase tracking-wider text-[#F5F7FB]">
+                AI INFERENCE
+              </span>
+            </div>
+            {openSections.AI ? (
+              <ChevronUp className="w-4 h-4 text-[#666660]" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-[#666660]" />
+            )}
+          </button>
+
+          {openSections.AI && (
+            <div className="p-5 pt-1 border-t border-[rgba(201,164,92,0.12)] space-y-4 text-xs">
+              <div className="flex items-center justify-between py-2 border-b border-[rgba(201,164,92,0.08)]">
+                <div>
+                  <p className="font-medium text-[#F5F5F0]">Primary AI Engine</p>
+                  <p className="text-[11px] text-[#666660]">Google Gemini API for reasoning & generative intelligence</p>
+                </div>
+                <span className="text-xs font-mono text-[#32D583]">Gemini API</span>
+              </div>
+
+              <div className="flex items-center justify-between py-2 border-b border-[rgba(201,164,92,0.08)]">
+                <div>
+                  <p className="font-medium text-[#F5F5F0]">Active Model</p>
+                  <p className="text-[11px] text-[#666660]">Configured multimodal cloud reasoning model</p>
+                </div>
+                <span className="text-xs font-mono text-[#C9A45C]">gemini-1.5-flash</span>
+              </div>
+
+              <div className="flex items-center justify-between py-2 border-b border-[rgba(201,164,92,0.08)]">
+                <div>
+                  <p className="font-medium text-[#F5F5F0]">Local Retrieval Layer</p>
+                  <p className="text-[11px] text-[#666660]">MOSS Core native Rust in-memory search</p>
+                </div>
+                <span className="text-xs font-mono text-[#32D583]">MOSS Core (~5-10ms)</span>
+              </div>
+
+              <div className="flex items-center justify-between py-2">
+                <div>
+                  <p className="font-medium text-[#F5F5F0]">Inference Temperature</p>
+                  <p className="text-[11px] text-[#666660]">Lower values guarantee deterministic, factual answers</p>
+                </div>
+                <span className="text-xs font-mono text-[#F5F5F0]">0.2</span>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* PRIVACY & AIR-GAP */}
         <div className="rounded-2xl border border-[rgba(201,164,92,0.12)] bg-[#0D0D0D] overflow-hidden transition-all">
           <button
@@ -373,7 +218,7 @@ export default function SettingsPage() {
             <div className="flex items-center gap-3">
               <Shield className="w-4 h-4 text-[#C9A45C]" />
               <span className="text-xs font-mono uppercase tracking-wider text-[#F5F5F0]">
-                PRIVACY & SECURITY
+                PRIVACY & AIR-GAP
               </span>
             </div>
             {openSections.PRIVACY ? (
@@ -387,18 +232,58 @@ export default function SettingsPage() {
             <div className="p-5 pt-1 border-t border-[rgba(201,164,92,0.12)] space-y-4 text-xs">
               <div className="flex items-center justify-between py-2 border-b border-[rgba(201,164,92,0.08)]">
                 <div>
-                  <p className="font-medium text-[#F5F5F0]">API Key Protection</p>
-                  <p className="text-[11px] text-[#666660]">Keys strictly accessed via serverless environment variables</p>
+                  <p className="font-medium text-[#F5F5F0]">Telemetry & Network Calls</p>
+                  <p className="text-[11px] text-[#666660]">All requests are kept in-process on device</p>
                 </div>
-                <span className="text-xs font-mono text-[#32D583]">ENCRYPTED SERVER-SIDE</span>
+                <span className="text-xs font-mono text-[#32D583]">DISABLED (100% AIR-GAPPED)</span>
               </div>
 
               <div className="flex items-center justify-between py-2">
                 <div>
-                  <p className="font-medium text-[#F5F5F0]">Client Isolation</p>
-                  <p className="text-[11px] text-[#666660]">No sensitive credentials exposed to browser bundle</p>
+                  <p className="font-medium text-[#F5F5F0]">Local Audit Trail</p>
+                  <p className="text-[11px] text-[#666660]">Queries and retrievals logged only to private SQLite</p>
                 </div>
-                <span className="text-xs font-mono text-[#C9A45C]">SECURED</span>
+                <span className="text-xs font-mono text-[#C9A45C]">ACTIVE</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* STORAGE & MEMORY */}
+        <div className="rounded-2xl border border-[rgba(201,164,92,0.12)] bg-[#0D0D0D] overflow-hidden transition-all">
+          <button
+            onClick={() => toggleSection("STORAGE")}
+            className="w-full p-4 flex items-center justify-between text-left hover:bg-[#111111] transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Database className="w-4 h-4 text-[#C9A45C]" />
+              <span className="text-xs font-mono uppercase tracking-wider text-[#F5F5F0]">
+                STORAGE & MEMORY
+              </span>
+            </div>
+            {openSections.STORAGE ? (
+              <ChevronUp className="w-4 h-4 text-[#666660]" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-[#666660]" />
+            )}
+          </button>
+
+          {openSections.STORAGE && (
+            <div className="p-5 pt-1 border-t border-[rgba(201,164,92,0.12)] space-y-4 text-xs">
+              <div className="flex items-center justify-between py-2 border-b border-[rgba(201,164,92,0.08)]">
+                <div>
+                  <p className="font-medium text-[#F5F5F0]">Vector Index</p>
+                  <p className="text-[11px] text-[#666660]">Moss In-Process Vector & Lexical Hybrid Memory</p>
+                </div>
+                <span className="text-xs font-mono text-[#F5F5F0]">veil-knowledge</span>
+              </div>
+
+              <div className="flex items-center justify-between py-2">
+                <div>
+                  <p className="font-medium text-[#F5F5F0]">Local SQLite Database</p>
+                  <p className="text-[11px] text-[#666660]">File metadata, chunks, and audit logs</p>
+                </div>
+                <span className="text-xs font-mono text-[#A6A6A0]">veil.db</span>
               </div>
             </div>
           )}
@@ -427,19 +312,15 @@ export default function SettingsPage() {
             <div className="p-5 pt-1 border-t border-[rgba(201,164,92,0.12)] space-y-3 text-xs">
               <div className="flex items-center justify-between py-1.5 border-b border-[rgba(201,164,92,0.08)]">
                 <span className="text-[#666660]">Version</span>
-                <span className="font-mono text-[#F5F5F0]">3.2.0 (Gemini Cloud + Local Hybrid)</span>
+                <span className="font-mono text-[#F5F5F0]">2.4.0 (Local First)</span>
               </div>
               <div className="flex items-center justify-between py-1.5 border-b border-[rgba(201,164,92,0.08)]">
-                <span className="text-[#666660]">Cloud AI</span>
-                <span className="font-mono text-[#C9A45C]">Google Gemini API</span>
-              </div>
-              <div className="flex items-center justify-between py-1.5 border-b border-[rgba(201,164,92,0.08)]">
-                <span className="text-[#666660]">Local AI Fallback</span>
-                <span className="font-mono text-[#A6A6A0]">Ollama (Qwen 2.5)</span>
+                <span className="text-[#666660]">Semantic Engine</span>
+                <span className="font-mono text-[#C9A45C]">Moss SDK</span>
               </div>
               <div className="flex items-center justify-between py-1.5">
                 <span className="text-[#666660]">Design System</span>
-                <span className="font-mono text-[#A6A6A0]">Black + Champagne Gold (#C9A45C)</span>
+                <span className="font-mono text-[#A6A6A0]">Black + Warm Gold Identity</span>
               </div>
             </div>
           )}

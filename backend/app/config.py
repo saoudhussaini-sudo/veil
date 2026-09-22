@@ -31,24 +31,19 @@ class Settings(BaseSettings):
     MOSS_DEFAULT_INDEX: str = "veil-knowledge"
     MOSS_MODEL_ID: str = "moss-minilm"
 
-    # LLM Provider Configuration
-    # Supported: GEMINI, OLLAMA_LOCAL, OLLAMA_CLOUD, API
-    AI_PROVIDER: str = "GEMINI"
+    # Primary AI Inference Engine: Google Gemini API
     LLM_PROVIDER: str = "GEMINI"
-    
-    # Google Gemini Cloud Inference
     GEMINI_API_KEY: str = ""
-    GEMINI_MODEL: str = "gemini-2.5-flash"
+    GEMINI_MODEL: str = "gemini-3-flash-preview"
 
-    # Ollama Local Fallback
-    OLLAMA_BASE_URL: str = "http://localhost:11434"
-    OLLAMA_MODEL: str = "qwen2.5:0.5b"
-    OLLAMA_API_KEY: str = ""
-
-    # Generic Cloud LLM (used when LLM_PROVIDER=API)
+    # Optional Generic Cloud LLM (OpenAI-compatible)
     LLM_API_KEY: str = ""
     LLM_BASE_URL: str = "https://api.groq.com/openai/v1"
     LLM_MODEL: str = "llama-3.1-8b-instant"
+
+    # Inference Limits & Resilience
+    LLM_MAX_TOKENS: int = 1024
+    LLM_TIMEOUT: float = 60.0
 
     # Aliases for backward compatibility
     @property
@@ -57,11 +52,11 @@ class Settings(BaseSettings):
 
     @property
     def LOCAL_AI_BASE_URL(self) -> str:
-        return self.OLLAMA_BASE_URL
+        return "https://generativelanguage.googleapis.com"
 
     @property
     def LOCAL_AI_MODEL(self) -> str:
-        return self.GEMINI_MODEL if (self.LLM_PROVIDER or "").upper() == "GEMINI" else self.OLLAMA_MODEL
+        return self.GEMINI_MODEL
 
 settings = Settings()
 

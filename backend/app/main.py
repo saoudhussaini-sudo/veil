@@ -34,6 +34,8 @@ async def lifespan(app: FastAPI):
     logger.info("Initializing VEIL local SQLite database and directories...")
     init_database()
     init_file_database()
+    logger.info("Initializing official MOSS service and authenticating project...")
+    await moss_service.initialize()
     logger.info(f"Syncing file chunks to Moss index '{settings.MOSS_INDEX_NAME}'...")
     try:
         await file_service.sync_all_to_moss()

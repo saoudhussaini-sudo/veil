@@ -10,9 +10,9 @@ interface SettingsModalProps {
 }
 
 export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
-  const [provider, setProvider] = useState("ollama");
-  const [model, setModel] = useState("qwen2.5:0.5b");
-  const [baseUrl, setBaseUrl] = useState("http://127.0.0.1:11434");
+  const [provider, setProvider] = useState("gemini");
+  const [model, setModel] = useState("gemini-1.5-flash");
+  const [baseUrl, setBaseUrl] = useState("https://generativelanguage.googleapis.com");
   const [mossProjectId, setMossProjectId] = useState("");
   const [mossProjectKey, setMossProjectKey] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -23,9 +23,9 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       fetchHealth()
         .then((data) => {
           if (data.local_ai) {
-            setProvider(data.local_ai.provider || "ollama");
-            setModel(data.local_ai.model || "qwen2.5:0.5b");
-            setBaseUrl(data.local_ai.base_url || "http://127.0.0.1:11434");
+            setProvider(data.local_ai.provider || "gemini");
+            setModel(data.local_ai.model || "gemini-1.5-flash");
+            setBaseUrl(data.local_ai.base_url || "https://generativelanguage.googleapis.com");
           }
         })
         .catch(() => {});
@@ -118,8 +118,8 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   onChange={(e) => setProvider(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl bg-[#05080C] border border-[#17232D] text-[#F5F9FC] focus:outline-none focus:border-[#22B8FF]"
                 >
-                  <option value="ollama">Ollama (Default)</option>
-                  <option value="local-offline-engine">Offline Local Engine</option>
+                  <option value="gemini">Google Gemini API (Default)</option>
+                  <option value="api">Cloud OpenAI-Compatible API</option>
                 </select>
               </div>
 
@@ -131,7 +131,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   type="text"
                   value={model}
                   onChange={(e) => setModel(e.target.value)}
-                  placeholder="qwen2.5:0.5b, llama3..."
+                  placeholder="gemini-1.5-flash, gemini-1.5-pro..."
                   className="w-full px-3 py-2 rounded-xl bg-[#05080C] border border-[#17232D] text-[#F5F9FC] font-mono focus:outline-none focus:border-[#22B8FF]"
                 />
               </div>

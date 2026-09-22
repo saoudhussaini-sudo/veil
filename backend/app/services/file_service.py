@@ -93,6 +93,7 @@ class FileService:
     async def sync_all_to_moss(self):
         """Indexes all active file chunks into the persistent Moss index."""
         all_chunks = file_storage.get_all_chunks()
+        all_files = {f["id"]: f for f in file_storage.list_files()}
         docs = []
         for c in all_chunks:
             meta = c.get("metadata", {})
@@ -101,6 +102,11 @@ class FileService:
             page = meta.get("page")
             chunk_idx = meta.get("chunk") or c.get("chunk_index", 0)
 
+            f_record = all_files.get(fid, {})
+            fpath = f_record.get("storage_path") or f_record.get("path") or ""
+            if not fname and f_record:
+                fname = f_record.get("original_name") or f_record.get("filename") or ""
+
             docs.append({
                 "id": c["id"],
                 "text": c.get("text") or c.get("chunk_text", ""),
@@ -108,6 +114,8 @@ class FileService:
                     "document_id": fid,
                     "fileId": fid,
                     "filename": fname,
+                    "path": fpath,
+                    "storage_path": fpath,
                     "page": page,
                     "chunk": chunk_idx,
                     "chunkIndex": chunk_idx,

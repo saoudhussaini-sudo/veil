@@ -25,7 +25,7 @@ import {
 export default function DashboardPage() {
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [events, setEvents] = useState<AccessEvent[]>([]);
-  const [activeModel, setActiveModel] = useState("Qwen 2.5");
+  const [activeModel, setActiveModel] = useState("Gemini 1.5 Flash");
   const [loading, setLoading] = useState(true);
 
   const loadDashboard = async () => {
@@ -34,7 +34,7 @@ export default function DashboardPage() {
       const [h, ev, ai] = await Promise.all([
         fetchHealth().catch(() => null),
         fetchRecentAccess(10).catch(() => []),
-        fetchAiModels().catch(() => ({ active_model: "qwen2.5:0.5b" })),
+        fetchAiModels().catch(() => ({ active_model: "gemini-1.5-flash" })),
       ]);
 
       if (h) setHealth(h);
@@ -53,9 +53,9 @@ export default function DashboardPage() {
 
   const metrics = [
     {
-      label: "LOCAL AI",
-      value: health?.local_ai?.connected ? "Ready" : "Active",
-      subtext: health?.local_ai?.provider || "Ollama (127.0.0.1)",
+      label: "AI REASONING",
+      value: health?.gemini?.configured ? "Ready" : "Active",
+      subtext: health?.gemini?.model || "Gemini 1.5 Flash",
       icon: Cpu,
       color: "text-[#32D583]",
     },
@@ -75,8 +75,8 @@ export default function DashboardPage() {
     },
     {
       label: "MODEL",
-      value: activeModel.split(":")[0] || "Qwen 2.5",
-      subtext: activeModel.includes(":") ? activeModel.split(":")[1] : "0.5B",
+      value: activeModel || "gemini-3-flash-preview",
+      subtext: "Gemini API Active",
       icon: Activity,
       color: "text-[#D8B46E]",
     },
@@ -212,10 +212,10 @@ export default function DashboardPage() {
 
           <div className="p-4 rounded-xl bg-[#0D0D0D] border border-[rgba(201,164,92,0.12)] space-y-1">
             <span className="text-[10px] font-mono text-[#666660] uppercase">
-              Local Inference Host
+              Primary AI Engine
             </span>
             <p className="text-xs font-mono text-[#F5F5F0]">
-              Ollama Server on 127.0.0.1:11434
+              Google Gemini API (Serverless)
             </p>
           </div>
 

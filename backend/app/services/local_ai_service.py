@@ -8,29 +8,27 @@ logger = logging.getLogger("veil.services.local_ai")
 
 class LocalAIService:
     """
-    Unified AI generative runtime service.
-    Delegates to the configured LLM provider (OLLAMA_LOCAL, OLLAMA_CLOUD, or API).
-    Auto-discovers models and tracks real, measured inference latencies.
+    Primary AI generative runtime service.
+    Delegates to Google Gemini API (or configured cloud provider).
+    Tracks real, measured inference latencies and enforces strict evidence grounding.
     """
     def __init__(self):
         self._provider_instance: BaseLLMProvider = get_llm_provider()
-        logger.info(f"LocalAIService initialized with provider {settings.LLM_PROVIDER}")
+        logger.info(f"LocalAIService initialized with provider {getattr(settings, 'LLM_PROVIDER', 'GEMINI')}")
 
     @property
     def provider(self) -> str:
-        return settings.LLM_PROVIDER
+        return getattr(settings, "LLM_PROVIDER", "GEMINI")
 
     @property
     def base_url(self) -> str:
-        if "OLLAMA" in settings.LLM_PROVIDER.upper():
-            return settings.OLLAMA_BASE_URL
-        return settings.LLM_BASE_URL
+        return "https://generativelanguage.googleapis.com"
 
     @property
     def model(self) -> str:
         if hasattr(self._provider_instance, "model"):
             return self._provider_instance.model
-        return settings.OLLAMA_MODEL
+        return getattr(settings, "GEMINI_MODEL", "gemini-1.5-flash")
 
     @model.setter
     def model(self, value: str):
@@ -100,27 +98,31 @@ class LocalAIService:
         mode: str = "RETRIEVAL"
     ) -> Tuple[str, float, str, str]:
         """
-        Executes reasoning over retrieved local file chunks via LLM provider.
+        Executes reasoning over retrieved local file chunks via Gemini API.
+        Enforces strict source citation with filenames and paths.
         """
-        # Build prompt with passages
         ctx_blocks = []
         for i, c in enumerate(context_chunks, 1):
             meta = c.get("metadata", {})
             fname = meta.get("filename") or c.get("file_name") or "Local Document"
+            fpath = meta.get("path") or meta.get("storage_path") or ""
             page = meta.get("page")
-            page_str = f"Page {page}" if page else f"Chunk {i}"
+            header_parts = [fname]
+            if page:
+                header_parts.append(f"Page {page}")
+            if fpath and fpath != fname:
+                header_parts.append(f"Path: {fpath}")
+            header = " | ".join(header_parts)
             txt = c.get("text") or c.get("chunk_text") or c.get("snippet") or ""
-            ctx_blocks.append(f"[{fname} — {page_str}]\n{txt.strip()}")
+            ctx_blocks.append(f"[{header}]\n{txt.strip()}")
 
         context_text = "\n\n".join(ctx_blocks)
 
-        prompt = f"""RETRIEVED LOCAL CONTEXT:
-{context_text}
-
-USER QUESTION:
+        prompt = f"""USER QUERY:
 {question}
 
-Answer using the retrieved context. Explicitly cite the document and page number when answering from the context."""
+RETRIEVED LOCAL CONTEXT:
+{context_text}"""
 
         return await self.generate(prompt=prompt, system=SYSTEM_PROMPT, temperature=0.2)
 
@@ -139,17 +141,26 @@ Answer using the retrieved context. Explicitly cite the document and page number
         if context_chunks:
             ctx_blocks = []
             for i, c in enumerate(context_chunks, 1):
-                fname = c.get("metadata", {}).get("filename") or c.get("file_name") or "Local Document"
+                meta = c.get("metadata", {})
+                fname = meta.get("filename") or c.get("file_name") or "Local Document"
+                fpath = meta.get("path") or meta.get("storage_path") or ""
+                page = meta.get("page")
+                header_parts = [fname]
+                if page:
+                    header_parts.append(f"Page {page}")
+                if fpath and fpath != fname:
+                    header_parts.append(f"Path: {fpath}")
+                header = " | ".join(header_parts)
                 txt = c.get("text") or c.get("chunk_text") or c.get("snippet") or ""
-                ctx_blocks.append(f"[{fname} - Chunk {i}]\n{txt.strip()}")
+                ctx_blocks.append(f"[{header}]\n{txt.strip()}")
             context_text = "\n\n".join(ctx_blocks)
-            full_prompt = f"""Retrieved Local File Context:
+            full_prompt = f"""Retrieved Local File Context (via MOSS):
 {context_text}
 
 User Question:
 {prompt}
 
-Instructions: Answer the user's question thoroughly based on the context above, citing file names."""
+Instructions: Answer based strictly on the context above, citing source filenames and paths."""
 
         async for token in self._provider_instance.stream_generate(prompt=full_prompt, system=sys, temperature=0.2):
             yield token
